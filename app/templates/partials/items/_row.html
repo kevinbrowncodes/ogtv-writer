@@ -1,0 +1,49 @@
+{#
+  A single read-only Item row. Expects `item`.
+
+  Demonstrates three HTMX interactions, all scoped to this row:
+    - status toggle (hx-post)  -> swaps this <tr>
+    - edit (hx-get)            -> swaps this <tr> for the inline edit form
+    - delete (hx-delete)       -> refreshes the whole list (#item-list)
+#}
+<tr id="item-{{ item.id }}" class="transition hover:bg-surface-2/40">
+  <td class="px-5 py-3 font-medium">{{ item.title }}</td>
+  <td class="hidden max-w-xs truncate px-5 py-3 text-muted md:table-cell">
+    {{ item.description or "—" }}
+  </td>
+  <td class="px-5 py-3">
+    {# Inline update example: click the badge to toggle status. #}
+    <button
+      type="button"
+      title="Click to toggle status"
+      hx-post="/items/{{ item.id }}/toggle"
+      hx-target="#item-{{ item.id }}"
+      hx-swap="outerHTML"
+    >
+      {% include "partials/items/_status_badge.html" %}
+    </button>
+  </td>
+  <td class="px-5 py-3">
+    <div class="flex justify-end gap-1">
+      <button
+        type="button"
+        class="btn-ghost px-2.5 py-1"
+        hx-get="/items/{{ item.id }}/edit"
+        hx-target="#item-{{ item.id }}"
+        hx-swap="outerHTML"
+      >
+        Edit
+      </button>
+      <button
+        type="button"
+        class="btn-ghost px-2.5 py-1 text-danger hover:text-danger"
+        hx-delete="/items/{{ item.id }}"
+        hx-target="#item-list"
+        hx-swap="outerHTML"
+        hx-confirm="Delete “{{ item.title }}”? This cannot be undone."
+      >
+        Delete
+      </button>
+    </div>
+  </td>
+</tr>

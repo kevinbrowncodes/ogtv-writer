@@ -1,0 +1,37 @@
+{
+  // Shared editor settings for this project. Safe to commit.
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+
+  // Python: format + lint with Ruff.
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+  "python.analysis.typeCheckingMode": "basic",
+
+  // Treat Jinja templates as HTML so Emmet + Tailwind IntelliSense work.
+  "files.associations": {
+    "*.html": "html"
+  },
+  "tailwindCSS.includeLanguages": {
+    "html": "html"
+  },
+  // Tailwind IntelliSense for class names inside Jinja templates.
+  "tailwindCSS.experimental.classRegex": [
+    ["class=\"([^\"]*)\"", "([a-zA-Z0-9\\-:/.\\[\\] ]+)"]
+  ],
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    "**/.mypy_cache": true
+  }
+}

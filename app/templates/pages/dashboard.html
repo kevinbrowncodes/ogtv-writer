@@ -1,0 +1,58 @@
+{% extends "shell.html" %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
+      <p class="text-sm text-muted">
+        Welcome back{% if current_user %}, {{ current_user.name or current_user.email }}{% endif %}.
+      </p>
+    </div>
+    <a href="/items" class="btn-primary">Manage items</a>
+  </div>
+
+  {# Self-refreshing stat cards (HTMX polling). #}
+  {% include "partials/_stat_cards.html" %}
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <!-- Recent items -->
+    <section class="card lg:col-span-2">
+      <div class="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 class="font-semibold">Recent items</h2>
+        <a href="/items" class="text-sm text-brand hover:underline">View all →</a>
+      </div>
+      <ul class="divide-y divide-border">
+        {% for item in recent_items %}
+        <li class="flex items-center justify-between gap-3 px-5 py-3">
+          <div class="min-w-0">
+            <p class="truncate font-medium">{{ item.title }}</p>
+            <p class="truncate text-xs text-muted">{{ item.description or "No description" }}</p>
+          </div>
+          {% include "partials/items/_status_badge.html" %}
+        </li>
+        {% else %}
+        <li class="px-5 py-10 text-center text-sm text-muted">
+          No items yet. <a href="/items" class="text-brand hover:underline">Create your first one</a>.
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <!-- Placeholder widget: replace with KPIs, charts, shortcuts, etc. -->
+    <section class="card p-5">
+      <h2 class="font-semibold">Getting started</h2>
+      <p class="mt-2 text-sm text-muted">
+        This is a placeholder widget. Swap it for the metrics or quick actions
+        your app needs.
+      </p>
+      <ul class="mt-4 space-y-2 text-sm">
+        <li><a href="/items" class="text-brand hover:underline">→ Try the Items CRUD demo</a></li>
+        <li><a href="/settings" class="text-brand hover:underline">→ Update your settings</a></li>
+        <li><span class="text-muted">→ Edit <code class="rounded bg-surface-2 px-1">app/templates/pages/dashboard.html</code></span></li>
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

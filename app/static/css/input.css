@@ -1,0 +1,100 @@
+/* ==========================================================================
+   Tailwind entry file. Compiled to app/static/css/app.css by:
+     make css          (one-off)        npm run css:build
+     make css-watch    (watch in dev)   npm run css:dev
+
+   THEME: the whole color system is CSS variables below. To re-skin the app,
+   change these values — light theme in :root, dark theme in .dark. Components
+   reference them via Tailwind's semantic color names (bg, surface, brand, ...).
+   ========================================================================== */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Color tokens as "R G B" so Tailwind can apply alpha (rgb(var(--x) / a)). */
+    --color-bg: 248 250 252;
+    --color-surface: 255 255 255;
+    --color-surface-2: 241 245 249;
+    --color-border: 226 232 240;
+    --color-content: 15 23 42;
+    --color-muted: 100 116 139;
+    --color-brand: 99 102 241;
+    --color-brand-fg: 255 255 255;
+    --color-success: 22 163 74;
+    --color-danger: 220 38 38;
+  }
+
+  .dark {
+    --color-bg: 11 15 23;
+    --color-surface: 17 24 39;
+    --color-surface-2: 31 41 55;
+    --color-border: 39 51 68;
+    --color-content: 226 232 240;
+    --color-muted: 148 163 184;
+    --color-brand: 129 140 248;
+    --color-brand-fg: 17 24 39;
+    --color-success: 34 197 94;
+    --color-danger: 248 113 113;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply font-sans;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Reusable component classes. Prefer these in templates over repeating long
+   utility strings. Add your own design-system primitives here.
+   -------------------------------------------------------------------------- */
+@layer components {
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2
+           text-sm font-medium transition focus:outline-none
+           focus-visible:ring-2 focus-visible:ring-brand/60 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-brand-fg hover:opacity-90;
+  }
+  .btn-secondary {
+    @apply btn border border-border bg-surface text-content hover:bg-surface-2;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:bg-surface-2 hover:text-content;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:opacity-90;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-content
+           placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-content;
+  }
+  .card {
+    @apply rounded-xl border border-border bg-surface;
+  }
+  .field-error {
+    @apply mt-1 text-xs text-danger;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   HTMX loading indicators. Any element with .htmx-indicator is hidden until a
+   related request is in flight (HTMX adds .htmx-request during the request).
+   -------------------------------------------------------------------------- */
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 150ms ease-in;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}

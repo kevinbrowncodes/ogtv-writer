@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+
+{% block body %}
+<div class="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
+  <p class="text-6xl font-bold tracking-tight text-brand">404</p>
+  <h1 class="text-xl font-semibold">Page not found</h1>
+  <p class="max-w-sm text-sm text-muted">
+    The page you're looking for doesn't exist or may have moved.
+  </p>
+  <a href="/" class="btn-primary mt-2">Back to home</a>
+</div>
+{% endblock %}

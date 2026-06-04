@@ -1,0 +1,13 @@
+{
+  "//": "Node is used ONLY to compile Tailwind CSS. There is no JS framework and no bundler. This keeps the frontend build a single, optional step. If you prefer zero Node, swap to the Tailwind standalone binary (see README).",
+  "name": "hyperstack",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "css:dev": "tailwindcss -i ./app/static/css/input.css -o ./app/static/css/app.css --watch",
+    "css:build": "tailwindcss -i ./app/static/css/input.css -o ./app/static/css/app.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

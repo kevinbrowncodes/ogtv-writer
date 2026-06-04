@@ -1,0 +1,22 @@
+{#
+  Dashboard stat cards.
+
+  HTMX POLLING: the wrapper re-fetches itself every 10s and replaces its own
+  outerHTML. Because the response is this same partial (with the hx-* attrs),
+  the polling re-arms automatically after each swap.
+#}
+<div
+  id="stat-cards"
+  hx-get="/dashboard/stats"
+  hx-trigger="every 10s"
+  hx-swap="outerHTML"
+  class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+>
+  {% for stat in stats %}
+  <div class="rounded-xl border border-border bg-surface p-5">
+    <p class="text-sm font-medium text-muted">{{ stat.label }}</p>
+    <p class="mt-2 text-3xl font-semibold tracking-tight">{{ stat.value }}</p>
+    <p class="mt-1 text-xs text-muted">{{ stat.hint }}</p>
+  </div>
+  {% endfor %}
+</div>

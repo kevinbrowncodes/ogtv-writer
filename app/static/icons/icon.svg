@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="App icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background keeps it valid as a maskable icon. -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- "Stack" glyph, kept within the central safe zone. -->
+  <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M256 132 L380 196 L256 260 L132 196 Z"/>
+    <path d="M132 256 L256 320 L380 256"/>
+    <path d="M132 316 L256 380 L380 316"/>
+  </g>
+</svg>

@@ -1,0 +1,8 @@
+{# Small reusable status pill. Expects `item`. #}
+<span
+  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium
+    {% if item.status == 'active' %}bg-success/15 text-success{% else %}bg-surface-2 text-muted{% endif %}"
+>
+  <span class="h-1.5 w-1.5 rounded-full {% if item.status == 'active' %}bg-success{% else %}bg-muted{% endif %}"></span>
+  {{ item.status | capitalize }}
+</span>

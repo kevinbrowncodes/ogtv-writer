@@ -1,0 +1,54 @@
+{% extends "shell.html" %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
+    <p class="text-sm text-muted">Manage your account and app preferences.</p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <!-- Profile -->
+    <section class="card p-5">
+      <h2 class="mb-4 font-semibold">Profile</h2>
+      {% include "partials/settings/_profile_form.html" %}
+    </section>
+
+    <!-- Password -->
+    <section class="card p-5">
+      <h2 class="mb-4 font-semibold">Password</h2>
+      {% include "partials/settings/_password_form.html" %}
+    </section>
+
+    <!-- Appearance -->
+    <section class="card p-5">
+      <h2 class="font-semibold">Appearance</h2>
+      <p class="mt-1 text-sm text-muted">Theme is remembered on this device.</p>
+      <button type="button" class="btn-secondary mt-4" data-theme-toggle>
+        Toggle light / dark
+      </button>
+    </section>
+
+    <!-- Feature flags (read-only view of env config) -->
+    <section class="card p-5">
+      <h2 class="font-semibold">Feature flags</h2>
+      <p class="mt-1 text-sm text-muted">Set these via environment variables.</p>
+      <ul class="mt-4 space-y-2 text-sm">
+        {% for name, value in {
+          "Signups": settings.feature_signups,
+          "Dark mode": settings.feature_dark_mode,
+          "Dashboard": settings.feature_dashboard,
+        }.items() %}
+        <li class="flex items-center justify-between">
+          <span>{{ name }}</span>
+          <span class="rounded-full px-2.5 py-0.5 text-xs font-medium {% if value %}bg-success/15 text-success{% else %}bg-surface-2 text-muted{% endif %}">
+            {{ "On" if value else "Off" }}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

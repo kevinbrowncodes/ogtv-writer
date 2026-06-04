@@ -1,0 +1,30 @@
+# Local container run. `docker compose up --build` then open http://localhost:8000
+#
+# Notes:
+#   - Reads your local .env for config (copy from .env.example first).
+#   - Persists the SQLite database in a named volume so data survives restarts.
+#   - For Postgres, add a `db` service and set DATABASE_URL accordingly.
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override a few values so the container is production-ish regardless of .env.
+      ENVIRONMENT: production
+      DATABASE_URL: sqlite:///./data/app.db
+    volumes:
+      - app-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  app-data:

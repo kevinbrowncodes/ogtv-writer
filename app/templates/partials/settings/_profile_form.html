@@ -1,0 +1,28 @@
+{#
+  Profile form. Expects `user`, optional `saved` (bool), optional `error` (str).
+  Inline-updates itself: posts to /settings/profile and swaps its own outerHTML.
+#}
+<form
+  id="profile-form"
+  hx-post="/settings/profile"
+  hx-target="#profile-form"
+  hx-swap="outerHTML"
+  class="space-y-4"
+>
+  <div>
+    <label class="label" for="name">Display name</label>
+    <input id="name" name="name" value="{{ user.name }}" class="input" placeholder="Your name" />
+    {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+  </div>
+
+  <div>
+    <label class="label" for="email">Email</label>
+    <input id="email" value="{{ user.email }}" class="input opacity-60" disabled />
+    <p class="mt-1 text-xs text-muted">Email changes aren't enabled in this starter.</p>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <button type="submit" class="btn-primary">Save profile</button>
+    {% if saved %}<span class="text-sm text-success">Saved ✓</span>{% endif %}
+  </div>
+</form>

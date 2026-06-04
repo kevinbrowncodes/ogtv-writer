@@ -1,0 +1,27 @@
+# Keep the Docker build context small and reproducible.
+.git
+.github
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+node_modules
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.sqlite3
+tests/
+test-results/
+playwright-report/
+.vscode
+*.md
+!README.md
+Dockerfile
+.dockerignore
+docker-compose.yml

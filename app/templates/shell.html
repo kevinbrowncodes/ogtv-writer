@@ -1,0 +1,29 @@
+{#
+  shell.html — the signed-in app chrome (sidebar + topbar).
+  Signed-in pages extend this and fill {% block content %}.
+
+    {% extends "shell.html" %}
+    {% block page_title %}Dashboard{% endblock %}
+    {% block content %}...{% endblock %}
+#}
+{% extends "base.html" %}
+
+{% block title %}{% block page_title %}{% endblock %}{% endblock %}
+
+{% block body %}
+<div class="flex min-h-screen">
+  {% include "partials/_sidebar.html" %}
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    {% include "partials/_topbar.html" %}
+
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+      {% include "partials/_flash.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+{# Global modal target. HTMX loads dialog markup in here; clearing it closes the modal. #}
+<div id="modal"></div>
+{% endblock %}

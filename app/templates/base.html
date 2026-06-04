@@ -1,0 +1,64 @@
+{#
+  base.html — the root HTML document.
+
+  Template hierarchy:
+    base.html            (this file: <head>, scripts, PWA + dark-mode bootstrap)
+      └── shell.html     (app chrome: sidebar + topbar; for signed-in pages)
+            └── pages/*  (dashboard, items, settings, ...)
+      └── pages/login.html, pages/signup.html  (extend base directly: no chrome)
+
+  Most app pages should extend "shell.html", NOT this file.
+#}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}{{ settings.app_name }}</title>
+    <meta name="description" content="{{ settings.app_description }}" />
+
+    {# --- Dark mode (applied before paint to avoid a flash of light theme) --- #}
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("theme");
+          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (t === "dark" || (!t && prefersDark)) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    {# --- PWA --- #}
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0b0f17" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" href="{{ url_for('static', path='icons/icon.svg') }}" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', path='icons/icon.svg') }}" />
+
+    {# --- Styles (compiled by Tailwind: `make css`) --- #}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}" />
+
+    {# --- HTMX (CDN). To go fully offline, vendor it locally — see README. --- #}
+    <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
+    <script src="{{ url_for('static', path='js/app.js') }}" defer></script>
+
+    {% block head_extra %}{% endblock %}
+  </head>
+  <body
+    class="min-h-screen bg-bg text-content antialiased selection:bg-brand/30"
+    hx-boost="false"
+  >
+    {% block body %}{% endblock %}
+
+    {# Toasts: app.js appends notifications here in response to HX-Trigger events. #}
+    <div
+      id="toast-region"
+      class="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 sm:items-end sm:px-6"
+      aria-live="polite"
+      aria-atomic="false"
+    ></div>
+  </body>
+</html>

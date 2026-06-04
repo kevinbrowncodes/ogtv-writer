@@ -1,0 +1,2 @@
+# This directory holds the local SQLite database (app.db) in development.
+# The DB file itself is gitignored; this .gitkeep keeps the directory present.

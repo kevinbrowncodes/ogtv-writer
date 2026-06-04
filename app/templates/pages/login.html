@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+
+{% block body %}
+<div class="flex min-h-screen items-center justify-center px-4 py-12">
+  <div class="w-full max-w-sm">
+    <div class="mb-6 flex flex-col items-center gap-2 text-center">
+      <img src="{{ url_for('static', path='icons/icon.svg') }}" alt="" class="h-10 w-10" />
+      <h1 class="text-xl font-semibold tracking-tight">{{ settings.app_name }}</h1>
+      <p class="text-sm text-muted">Sign in to your account</p>
+    </div>
+
+    <div class="card p-6">
+      {% if error %}
+      <div class="mb-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="post" action="/login" class="space-y-4">
+        <input type="hidden" name="next" value="{{ next }}" />
+        <div>
+          <label class="label" for="email">Email</label>
+          <input id="email" name="email" type="email" required value="{{ email | default('') }}"
+                 class="input" autocomplete="email" autofocus />
+        </div>
+        <div>
+          <label class="label" for="password">Password</label>
+          <input id="password" name="password" type="password" required
+                 class="input" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-primary w-full">Sign in</button>
+      </form>
+    </div>
+
+    {% if settings.feature_signups %}
+    <p class="mt-4 text-center text-sm text-muted">
+      No account? <a href="/signup" class="text-brand hover:underline">Create one</a>
+    </p>
+    {% endif %}
+
+    {% if settings.is_development %}
+    <p class="mt-6 text-center text-xs text-muted">
+      Dev login: <code class="rounded bg-surface-2 px-1">{{ settings.seed_user_email }}</code>
+      (run <code class="rounded bg-surface-2 px-1">make seed</code>)
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

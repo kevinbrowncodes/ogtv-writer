@@ -1,0 +1,68 @@
+{#
+  Create-item modal. Expects `errors` (dict) and `values` (dict).
+
+  Flow:
+    - Loaded into #modal by the "New item" button (hx-get /items/new).
+    - Submits with hx-post /items, hx-target="#modal".
+    - On validation error: server returns THIS form again (with errors) -> stays open.
+    - On success: server returns only an out-of-band #item-list, so #modal gets
+      emptied and the dialog closes. (See routes/items.py + _list.html.)
+
+  Closing: the backdrop and the ✕/Cancel buttons carry data-modal-close; app.js
+  empties #modal on click.
+#}
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  data-modal-overlay
+>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-modal-close></div>
+
+  <div
+    class="relative w-full max-w-md rounded-xl border border-border bg-surface shadow-xl"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+  >
+    <div class="flex items-center justify-between border-b border-border px-5 py-4">
+      <h2 id="modal-title" class="font-semibold">New item</h2>
+      <button type="button" class="btn-ghost px-2 py-1" data-modal-close aria-label="Close">✕</button>
+    </div>
+
+    <form hx-post="/items" hx-target="#modal" hx-swap="innerHTML" class="space-y-4 p-5">
+      <div>
+        <label class="label" for="title">Title</label>
+        <input
+          id="title" name="title" value="{{ values.title or '' }}"
+          class="input" placeholder="e.g. Quarterly report" autofocus
+        />
+        {% if errors.title %}<p class="field-error">{{ errors.title }}</p>{% endif %}
+      </div>
+
+      <div>
+        <label class="label" for="description">Description</label>
+        <textarea id="description" name="description" rows="3" class="input" placeholder="Optional">{{ values.description or '' }}</textarea>
+        {% if errors.description %}<p class="field-error">{{ errors.description }}</p>{% endif %}
+      </div>
+
+      <div>
+        <label class="label" for="status">Status</label>
+        <select id="status" name="status" class="input">
+          <option value="active" {% if values.status == 'active' %}selected{% endif %}>Active</option>
+          <option value="archived" {% if values.status == 'archived' %}selected{% endif %}>Archived</option>
+        </select>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn-primary">
+          <span>Create item</span>
+          {# Loading indicator: shown automatically while the form request is in flight. #}
+          <svg class="htmx-indicator h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
