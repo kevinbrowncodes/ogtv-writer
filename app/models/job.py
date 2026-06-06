@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -50,6 +50,10 @@ class Job(Base, TimestampMixin):
     # Lifecycle.
     status: Mapped[str] = mapped_column(String(20), default="queued", index=True)
     error: Mapped[str] = mapped_column(Text, default="")
+
+    # How many times the worker has tried this job (STORY_012). Transient failures are
+    # retried up to MAX_ATTEMPTS; a content block fails on the first attempt.
+    attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
     # Populated by the worker in STORY_003.
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

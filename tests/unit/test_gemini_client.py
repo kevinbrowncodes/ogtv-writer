@@ -15,13 +15,30 @@ from types import SimpleNamespace
 import pytest
 
 from app.services import gemini_client
-from app.services.gemini_client import GenerationError, _block_reason
+from app.services.gemini_client import (
+    GenerationError,
+    RetryableError,
+    _block_reason,
+    _is_transient,
+)
 
 PNG = b"\x89PNG\r\n\x1a\n"
 
 
+class _ApiError(Exception):
+    """Stand-in for a google-genai APIError carrying an HTTP status code."""
+
+    def __init__(self, code: int, message: str = ""):
+        super().__init__(message or f"status {code}")
+        self.code = code
+
+
 def _install_fake_sdk(monkeypatch, response):
-    """Make ``from google import genai`` return a client that yields ``response``."""
+    """Make ``from google import genai`` return a client that yields ``response``.
+
+    If ``response`` is an ``Exception`` it is raised from ``generate_content`` instead,
+    so tests can exercise the transient/terminal SDK-error paths.
+    """
     fake_types = pytypes.ModuleType("google.genai.types")
 
     class Part:
@@ -33,6 +50,8 @@ def _install_fake_sdk(monkeypatch, response):
 
     class _Models:
         def generate_content(self, *, model, contents):
+            if isinstance(response, Exception):
+                raise response
             return response
 
     class Client:
@@ -101,3 +120,35 @@ def test_generate_raises_when_text_access_throws(monkeypatch):
     with pytest.raises(GenerationError) as exc:
         _generate()
     assert "finish_reason=SAFETY" in str(exc.value)
+
+
+# --- transient classification (STORY_012) ------------------------------------
+def test_is_transient_retries_rate_limit_and_5xx():
+    assert _is_transient(_ApiError(429)) is True
+    assert _is_transient(_ApiError(503)) is True
+
+
+def test_is_transient_skips_client_errors():
+    assert _is_transient(_ApiError(400)) is False
+    assert _is_transient(_ApiError(403)) is False
+
+
+def test_is_transient_detects_transport_failures_by_name():
+    assert _is_transient(TimeoutError("slow")) is True
+    assert _is_transient(ConnectionError("reset")) is True
+
+
+def test_is_transient_false_for_generic_error():
+    assert _is_transient(ValueError("bad input")) is False
+
+
+def test_generate_wraps_transient_sdk_error_as_retryable(monkeypatch):
+    _install_fake_sdk(monkeypatch, _ApiError(503, "server error"))
+    with pytest.raises(RetryableError):
+        _generate()
+
+
+def test_generate_reraises_terminal_sdk_error(monkeypatch):
+    _install_fake_sdk(monkeypatch, _ApiError(400, "bad request"))
+    with pytest.raises(_ApiError):
+        _generate()

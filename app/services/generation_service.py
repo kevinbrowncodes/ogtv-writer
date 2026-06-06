@@ -12,12 +12,13 @@ no live, paid calls are ever made.
 from __future__ import annotations
 
 import logging
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.models.job import Job
 from app.services import gemini_client, output_parser, prompt_catalog, script_service, shoots
 from app.services.uploads import PROJECT_ROOT
@@ -91,11 +92,56 @@ def _read_image(image_path: str) -> bytes:
     return path.read_bytes()
 
 
+def _backoff_seconds(attempt: int) -> float:
+    """Exponential backoff between retries: 1s, 2s, 4s, … capped at 30s."""
+    return float(min(2 ** (attempt - 1), 30))
+
+
+def _sleep(seconds: float) -> None:
+    """Indirection so tests can patch out the (otherwise real) backoff sleep."""
+    time.sleep(seconds)
+
+
+def _generate_with_retries(
+    db: Session, job: Job, *, assembled: str, mime: str, settings: Settings
+) -> str:
+    """Call Gemini, retrying transient failures up to ``max_attempts``.
+
+    Records each try on ``job.attempts`` (committed between tries so the live view can
+    show "attempt N of M"). A :class:`gemini_client.RetryableError` is retried with a
+    short backoff; any other error (including a content block) propagates immediately.
+    """
+    max_attempts = max(1, settings.max_attempts)
+    while True:
+        job.attempts += 1
+        try:
+            return gemini_client.generate(
+                prompt=assembled,
+                image_bytes=_read_image(job.image_path),
+                image_mime=mime,
+                model=job.model or settings.gemini_model,
+                api_key=settings.gemini_api_key,
+            )
+        except gemini_client.RetryableError as exc:
+            if job.attempts >= max_attempts:
+                raise
+            log.warning(
+                "Job %s attempt %s/%s failed (transient): %s",
+                job.id,
+                job.attempts,
+                max_attempts,
+                exc,
+            )
+            db.commit()  # persist the attempt count so the live view updates
+            _sleep(_backoff_seconds(job.attempts))
+
+
 def run_job(db: Session, job: Job) -> None:
     """Generate for a single (already-claimed) job, storing the raw response.
 
     Always commits a terminal state — ``done`` with ``result_raw`` or ``failed``
-    with ``error`` — and never raises, so the worker loop keeps running.
+    with ``error`` — and never raises, so the worker loop keeps running. Transient
+    failures are retried up to ``MAX_ATTEMPTS`` (STORY_012).
     """
     settings = get_settings()
     try:
@@ -107,16 +153,9 @@ def run_job(db: Session, job: Job) -> None:
             raise RuntimeError(f"Prompt '{job.prompt_slug}' no longer exists.")
 
         mime = _MIME_BY_EXT.get(Path(job.image_path).suffix.lower(), "image/jpeg")
-        image_bytes = _read_image(job.image_path)
         assembled = assemble_prompt(prompt.body, count=job.count, addendum=job.addendum)
 
-        text = gemini_client.generate(
-            prompt=assembled,
-            image_bytes=image_bytes,
-            image_mime=mime,
-            model=job.model or settings.gemini_model,
-            api_key=settings.gemini_api_key,
-        )
+        text = _generate_with_retries(db, job, assembled=assembled, mime=mime, settings=settings)
 
         parsed = output_parser.parse_response(text)
         job.result_raw = text

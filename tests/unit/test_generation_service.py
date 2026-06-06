@@ -166,6 +166,81 @@ def test_run_job_surfaces_empty_response_reason(db, tmp_path, monkeypatch):
     assert "SAFETY" in job.error
 
 
+# --- retries (STORY_012) -----------------------------------------------------
+def test_run_job_retries_transient_then_succeeds(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    get_settings.cache_clear()
+    monkeypatch.setattr(generation_service, "_sleep", lambda _seconds: None)  # no real backoff
+    calls = {"n": 0}
+
+    def flaky(**kwargs):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            raise gemini_client.RetryableError("rate limited")
+        return "<<<SCRIPT 1>>>ok<<<END SCRIPT>>>"
+
+    monkeypatch.setattr(gemini_client, "generate", flaky)
+
+    job = _running_job(db, tmp_path)
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "done"
+    assert job.attempts == 3
+    assert calls["n"] == 3
+
+
+def test_run_job_fails_after_max_attempts(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    get_settings.cache_clear()
+    monkeypatch.setattr(generation_service, "_sleep", lambda _seconds: None)
+    calls = {"n": 0}
+
+    def always(**kwargs):
+        calls["n"] += 1
+        raise gemini_client.RetryableError(f"503 unavailable #{calls['n']}")
+
+    monkeypatch.setattr(gemini_client, "generate", always)
+
+    job = _running_job(db, tmp_path)
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "failed"
+    assert job.attempts == 3  # MAX_ATTEMPTS default
+    assert calls["n"] == 3
+    assert "#3" in job.error  # the *last* error is retained
+
+
+def test_run_job_does_not_retry_content_block(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    get_settings.cache_clear()
+    monkeypatch.setattr(generation_service, "_sleep", lambda _seconds: None)
+    calls = {"n": 0}
+
+    def blocked(**kwargs):
+        calls["n"] += 1
+        raise gemini_client.GenerationError("Gemini returned no content — prompt blocked (SAFETY).")
+
+    monkeypatch.setattr(gemini_client, "generate", blocked)
+
+    job = _running_job(db, tmp_path)
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "failed"
+    assert job.attempts == 1  # terminal — not retried
+    assert calls["n"] == 1
+    assert "SAFETY" in job.error
+
+
+def test_backoff_grows_and_caps():
+    assert generation_service._backoff_seconds(1) == 1
+    assert generation_service._backoff_seconds(2) == 2
+    assert generation_service._backoff_seconds(3) == 4
+    assert generation_service._backoff_seconds(20) == 30  # capped
+
+
 def test_run_job_without_api_key_fails_and_skips_client(db, tmp_path, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "")
     get_settings.cache_clear()

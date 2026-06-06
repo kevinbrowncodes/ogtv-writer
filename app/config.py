@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
 
+    # How many times the worker tries a job before giving up. Only *transient* failures
+    # (rate-limit / network / 5xx) are retried; a content block fails immediately.
+    max_attempts: int = 3
+
     # --- Derived helpers ------------------------------------------------------
     @property
     def is_production(self) -> bool:

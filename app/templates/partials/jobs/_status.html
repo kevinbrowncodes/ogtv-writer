@@ -8,14 +8,21 @@
   <div class="flex items-center gap-2">
     {% set status = job.status %}{% include "partials/jobs/_status_badge.html" %}
     {% if job.status in ("queued", "running") %}
+      {% if job.attempts > 1 %}
+      <span class="text-xs text-muted">Retrying… attempt {{ job.attempts }} of {{ settings.max_attempts }}.</span>
+      {% else %}
       <span class="text-xs text-muted">Working… this refreshes automatically.</span>
+      {% endif %}
     {% elif job.started_at and job.finished_at %}
-      <span class="text-xs text-muted">ran for {{ (job.finished_at - job.started_at).total_seconds() | int }}s</span>
+      <span class="text-xs text-muted">
+        ran for {{ (job.finished_at - job.started_at).total_seconds() | int }}s{% if job.attempts > 1 %} · {{ job.attempts }} attempts{% endif %}
+      </span>
     {% endif %}
   </div>
 
   {% if job.status == "failed" and job.error %}
   <div class="mt-3 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+    {% if job.attempts > 1 %}<p class="font-medium">Failed after {{ job.attempts }} attempts.</p>{% endif %}
     {{ job.error }}
   </div>
   {% endif %}

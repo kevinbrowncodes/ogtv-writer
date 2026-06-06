@@ -11,7 +11,44 @@ from typing import Any
 
 
 class GenerationError(RuntimeError):
-    """Raised when Gemini returns no usable content (e.g. a safety block)."""
+    """Raised when Gemini returns no usable content (e.g. a safety block).
+
+    Terminal: the same prompt + frame blocks deterministically, so the worker does
+    NOT retry it (STORY_012).
+    """
+
+
+class RetryableError(RuntimeError):
+    """A transient Gemini failure (rate-limit / network / 5xx / timeout).
+
+    The worker retries these up to ``MAX_ATTEMPTS`` (STORY_012).
+    """
+
+
+# HTTP statuses worth retrying: rate-limit, request timeout, conflict, and 5xx.
+_TRANSIENT_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
+
+# Substrings in an exception's type name that signal a transient transport failure
+# (matched lower-cased), used when no HTTP status is exposed.
+_TRANSIENT_NAME_MARKERS = (
+    "timeout",
+    "connection",
+    "unavailable",
+    "deadline",
+    "resourceexhausted",
+    "toomanyrequests",
+)
+
+
+def _is_transient(exc: Exception) -> bool:
+    """Best-effort: is this Gemini/transport error worth retrying?"""
+    code = getattr(exc, "code", None)
+    if not isinstance(code, int):
+        code = getattr(exc, "status_code", None)
+    if isinstance(code, int) and code in _TRANSIENT_STATUS:
+        return True
+    name = type(exc).__name__.lower()
+    return any(marker in name for marker in _TRANSIENT_NAME_MARKERS)
 
 
 # Models whose name contains any of these aren't general text generators
@@ -76,19 +113,25 @@ def generate(*, prompt: str, image_bytes: bytes, image_mime: str, model: str, ap
     """Send a prompt + image to Gemini and return the response text.
 
     Raises :class:`GenerationError` when the response carries no text (e.g. a safety
-    block), or re-raises SDK/transport errors; the caller turns either into a failed job.
+    block — terminal), :class:`RetryableError` on a transient transport/API failure
+    (retried by the worker), or re-raises other SDK errors as terminal failures.
     """
     from google import genai
     from google.genai import types
 
     client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model=model,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=image_mime),
-            prompt,
-        ],
-    )
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=image_mime),
+                prompt,
+            ],
+        )
+    except Exception as exc:
+        if _is_transient(exc):
+            raise RetryableError(str(exc)) from exc
+        raise
     # `.text` can raise when a response was blocked and has no candidate.
     try:
         text = response.text
