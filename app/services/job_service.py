@@ -6,10 +6,15 @@ adds status transitions on top of this.
 
 from __future__ import annotations
 
+import io
+import re
+import zipfile
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.job import Job
+from app.models.script import Script
 
 
 def create_job(
@@ -60,3 +65,24 @@ def get_job(db: Session, job_id: int) -> Job | None:
 def delete_job(db: Session, job: Job) -> None:
     db.delete(job)
     db.commit()
+
+
+def _slugify(value: str) -> str:
+    value = re.sub(r"[^\w\s-]", "", value.lower()).strip()
+    return re.sub(r"[-\s]+", "-", value)[:60] or "run"
+
+
+def build_run_zip(job: Job, scripts: list[Script]) -> tuple[bytes, str]:
+    """Bundle a job's scripts (+ titles.txt, if any) into a .zip.
+
+    Returns ``(zip_bytes, filename)``. Each script is ``scriptN.txt`` in order,
+    body-only; the filename is derived from the prompt + job id.
+    """
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for index, script in enumerate(scripts, start=1):
+            archive.writestr(f"script{index}.txt", script.body)
+        if job.titles.strip():
+            archive.writestr("titles.txt", job.titles)
+    base = _slugify((job.prompt_filename or job.prompt_slug).removesuffix(".md"))
+    return buffer.getvalue(), f"{base}_job{job.id}.zip"

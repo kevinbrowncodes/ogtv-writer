@@ -26,14 +26,29 @@
     {% endif %}
 
     {# Scripts #}
-    <div class="mt-4 space-y-4">
+    <div class="mt-4 flex items-center justify-between gap-3">
+      <h2 class="text-sm font-semibold">Generated scripts</h2>
+      {% if scripts %}
+      <a href="/jobs/{{ job.id }}/export.zip" class="btn-secondary px-2.5 py-1 text-xs">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+        Download .zip
+      </a>
+      {% endif %}
+    </div>
+    <div class="mt-3 space-y-4">
       {% for s in scripts %}
       <div class="overflow-hidden rounded-lg border border-border">
-        <div class="flex items-center justify-between border-b border-border px-4 py-2">
-          <a href="/scripts/{{ s.id }}" class="text-sm font-medium hover:text-brand">{{ s.title }}</a>
-          <span class="text-xs text-muted">Script {{ s.order_index }}</span>
+        <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
+          <a href="/scripts/{{ s.id }}" class="truncate text-sm font-medium hover:text-brand">{{ s.title }}</a>
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              type="button" class="btn-ghost px-2 py-1 text-xs"
+              data-copy="#job-script-{{ s.id }}" data-copied="Script copied to clipboard."
+            >Copy</button>
+            <span class="text-xs text-muted">Script {{ s.order_index }}</span>
+          </div>
         </div>
-        <pre class="max-h-64 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-xs text-content">{{ s.body }}</pre>
+        <pre id="job-script-{{ s.id }}" class="max-h-64 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-xs text-content">{{ s.body }}</pre>
       </div>
       {% else %}
       <p class="text-sm text-muted">No scripts were parsed from the response.</p>

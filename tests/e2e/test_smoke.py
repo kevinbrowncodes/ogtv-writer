@@ -70,3 +70,9 @@ def test_completed_job_shows_split_scripts(page: Page, live_server: str):
     page.locator("#job-list tr", has_text="Done").first.locator("a").click()
     expect(page.locator("#job-status")).to_contain_text("Seeded script alpha")
     expect(page.locator("#job-status")).to_contain_text("Seeded scene summary.")
+
+    # Copy + export controls are present, and the .zip actually downloads.
+    expect(page.get_by_role("button", name="Copy").first).to_be_visible()
+    with page.expect_download() as download:
+        page.get_by_role("link", name="Download .zip").click()
+    assert download.value.suggested_filename.endswith(".zip")

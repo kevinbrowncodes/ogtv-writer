@@ -100,6 +100,19 @@ def job_status(request: Request, db: DbSession, job_id: int) -> HTMLResponse:
     )
 
 
+@router.get("/jobs/{job_id}/export.zip")
+def job_export_zip(db: DbSession, job_id: int) -> Response:
+    """Download the whole run as a .zip (scriptN.txt + titles.txt)."""
+    job = _get_or_404(db, job_id)
+    scripts = script_service.list_for_job(db, job.id)
+    data, filename = job_service.build_run_zip(job, scripts)
+    return Response(
+        content=data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.post("/jobs")
 def jobs_create(
     request: Request,
