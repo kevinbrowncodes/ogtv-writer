@@ -22,6 +22,7 @@ install: ## Install Python (editable + dev) and Node dependencies
 setup: install ## Full first-time setup: deps, browsers, CSS, seed data
 	$(PYTHON) -m playwright install chromium
 	$(MAKE) css
+	$(MAKE) migrate
 	$(MAKE) seed
 	@echo "\n✅ Setup complete. Start the app with: make dev"
 
@@ -48,8 +49,16 @@ run: ## Run the server without reload (production-like)
 	$(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port $(PORT)
 
 .PHONY: seed
-seed: ## Create the demo user and sample data
+seed: ## Create sample data (tags + scripts)
 	$(PYTHON) -m scripts.seed
+
+.PHONY: migrate
+migrate: ## Apply migrations to head (adopts an existing pre-migration DB safely)
+	$(PYTHON) -m app.migrations_runner
+
+.PHONY: migration
+migration: ## Autogenerate a migration: make migration m="describe change"
+	alembic revision --autogenerate -m "$(m)"
 
 # --- Quality ------------------------------------------------------------------
 .PHONY: lint

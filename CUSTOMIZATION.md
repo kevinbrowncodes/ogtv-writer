@@ -112,18 +112,20 @@ SQLite is the default and is perfect for a single-operator tool.
 **Switch to Postgres:** set `DATABASE_URL` in `.env` and add the driver to
 `pyproject.toml` (`"psycopg[binary]>=3.2"`).
 
-**Adopt migrations (before you have data you care about):**
+**Migrations are managed with Alembic** (in `migrations/`):
 
-```bash
-pip install alembic
-alembic init migrations
-# point migrations/env.py at app.database.Base.metadata and app.config DATABASE_URL
-alembic revision --autogenerate -m "init"
-alembic upgrade head
-```
+- `make migration m="describe change"` — autogenerate a revision after editing a model.
+- `make migrate` — apply migrations to head. It safely *adopts* a pre-migration DB
+  (stamps it when it already matches the current schema; refuses a stale one rather than
+  mis-stamping it).
+- In dev the app **auto-applies migrations on startup** (`AUTO_MIGRATE=true`). In
+  production set `AUTO_MIGRATE=false` and run `make migrate` as a deploy step — the app
+  then only *verifies* the DB is at head and refuses to start if it's behind.
 
-Then make `init_db()` in [app/database.py](app/database.py) a no-op (or
-test-only). It currently runs `create_all` on startup for dev convenience.
+**Workflow for a schema change:** edit the model → `make migration m="..."` → review the
+file in `migrations/versions/` → `make migrate` (or just restart in dev). Tests use
+`create_all` directly (fast), and a drift test (`alembic check`) ensures every model
+change has a matching migration.
 
 ---
 

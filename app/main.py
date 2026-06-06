@@ -23,8 +23,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
+from app import migrations_runner
 from app.config import get_settings
-from app.database import init_db
 from app.logging_config import configure_logging
 from app.routes import health, jobs, pages, prompt_catalog, pwa, scripts, tags
 from app.routes import settings as settings_routes
@@ -46,10 +46,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     settings = get_settings()
     log.info("Starting %s (env=%s)", settings.app_name, settings.environment)
-    init_db()
-    # The background worker drains the generation queue. Never run it under tests
-    # (they call the worker's unit of work directly with the Gemini client mocked).
+    # Bring the schema up to date via Alembic. Tests use create_all and skip this.
     if not settings.is_testing:
+        if settings.auto_migrate:
+            migrations_runner.upgrade_to_head()
+        else:
+            migrations_runner.verify_at_head()
+        # The background worker drains the generation queue (never under tests).
         job_worker.start()
     yield
     if not settings.is_testing:

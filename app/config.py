@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     # --- Database -------------------------------------------------------------
     database_url: str = "sqlite:///./data/app.db"
 
+    # Apply pending Alembic migrations on startup (great for local dev). Turn OFF in
+    # production and run `alembic upgrade head` as a deploy step — the app then only
+    # verifies the DB is at head and refuses to start if it isn't.
+    auto_migrate: bool = True
+
     # --- Server ---------------------------------------------------------------
     host: str = "0.0.0.0"
     port: int = 8000

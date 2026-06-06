@@ -19,7 +19,8 @@ from pathlib import Path
 # root on sys.path. (Not needed for `python -m scripts.seed`.)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.database import SessionLocal, init_db  # noqa: E402
+from app import migrations_runner  # noqa: E402
+from app.database import SessionLocal  # noqa: E402
 from app.schemas.script import ScriptCreate  # noqa: E402
 from app.schemas.tag import TagCreate  # noqa: E402
 from app.services import script_service, tag_service  # noqa: E402
@@ -57,7 +58,7 @@ SAMPLE_SCRIPTS = [
 
 
 def main() -> None:
-    init_db()
+    migrations_runner.upgrade_to_head()
 
     with SessionLocal() as db:
         # --- Tags -------------------------------------------------------------

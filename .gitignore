@@ -242,3 +242,6 @@ app/static/css/app.css
 
 # Local editor scratch (the rest of .vscode/ IS tracked for shared settings)
 .vscode/*.local.json
+
+# macOS Finder cruft
+.DS_Store

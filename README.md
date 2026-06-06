@@ -88,7 +88,8 @@ pip install -e ".[dev]"
 npm install
 python -m playwright install chromium
 npm run css:build
-# sample prompts, scripts, templates, tags
+# apply migrations, then seed sample data (tags + scripts)
+python -m app.migrations_runner
 python -m scripts.seed
 ```
 
@@ -191,6 +192,7 @@ by [app/config.py](app/config.py).
 | `DEBUG` | Verbose logging + interactive tracebacks |
 | `SECRET_KEY` | Signs the session cookie (used only for flash messages) |
 | `DATABASE_URL` | `sqlite:///./data/app.db` or a Postgres URL |
+| `AUTO_MIGRATE` | Apply migrations on startup (dev); set `false` in prod and run `make migrate` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini auth + model for the generator (blank = generation disabled) |
 | `FEATURE_DARK_MODE`, `FEATURE_DASHBOARD` | Feature flags |
 
