@@ -1,18 +1,16 @@
 # ==============================================================================
 # pyproject.toml — single source of truth for Python tooling
 #
-# This template is an *application* (not a library), but we still declare it as
-# an installable package so `pip install -e .` wires up imports cleanly and
-# tooling (ruff, mypy, pytest) reads its config from one place.
-#
-# TEMPLATE TIP: rename `hyperstack` below + the `[tool.hatch...] packages` entry
-# when you fork this for a new app. See CUSTOMIZATION.md for the full checklist.
+# OGTV Writer is an *application* (not a library), but we still declare it as an
+# installable package so `pip install -e .` wires up imports cleanly and tooling
+# (ruff, mypy, pytest) reads its config from one place. The import package stays
+# `app/`, so internal imports never change.
 # ==============================================================================
 
 [project]
-name = "hyperstack"
+name = "ogtv-writer"
 version = "0.1.0"
-description = "Generic FastAPI + HTMX + Tailwind starter template."
+description = "OnlyGainsTV Writer — generate, organize, and export AI video scripts."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -26,12 +24,9 @@ dependencies = [
     "sqlalchemy>=2.0",
     "pydantic-settings>=2.4",
     "python-multipart>=0.0.9", # parses HTML form submissions (HTMX hx-post)
-    "itsdangerous>=2.2",       # signs the session cookie (SessionMiddleware)
-    "email-validator>=2.0",    # backs pydantic's EmailStr
+    "itsdangerous>=2.2",       # signs the session cookie (flash messages)
     # >>> ADD APP-SPECIFIC RUNTIME DEPENDENCIES BELOW THIS LINE <<<
-    # "stripe>=10",
-    # "anthropic>=0.40",
-    # "redis>=5",
+    # "anthropic>=0.40",   # to wire a real LLM into the script generator
 ]
 
 [project.optional-dependencies]
@@ -51,6 +46,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+# Hatch needs an explicit hint because the package dir ("app") doesn't match the
+# distribution name ("ogtv-writer").
 
 # ==============================================================================
 # Ruff — linter + formatter (replaces flake8, isort, black)

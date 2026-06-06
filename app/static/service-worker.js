@@ -15,7 +15,7 @@
    restrict caching to truly static paths (see the `isStatic` check).
    ========================================================================== */
 
-const CACHE_VERSION = "hyperstack-v1";
+const CACHE_VERSION = "ogtv-writer-v1";
 
 // Precached on install so the shell works on first offline load.
 const PRECACHE_URLS = [

@@ -1,36 +1,34 @@
-"""Integration tests for the dashboard pages."""
+"""Integration tests for the dashboard + top-level pages (no auth)."""
 
 from __future__ import annotations
 
 
-def test_index_redirects_to_login_when_logged_out(client):
+def test_index_redirects_to_dashboard(client):
     resp = client.get("/", follow_redirects=False)
-    assert resp.status_code == 303
-    assert resp.headers["location"] == "/login"
-
-
-def test_index_redirects_to_dashboard_when_logged_in(auth_client):
-    resp = auth_client.get("/", follow_redirects=False)
     assert resp.status_code == 303
     assert resp.headers["location"] == "/dashboard"
 
 
-def test_dashboard_renders_shell_and_stats(auth_client):
-    resp = auth_client.get("/dashboard")
+def test_dashboard_renders_shell_and_stats(client):
+    resp = client.get("/dashboard")
     assert resp.status_code == 200
     assert "Dashboard" in resp.text
     assert 'id="stat-cards"' in resp.text  # the polling widget is present
+    # OGTV stat labels.
+    assert "Prompts" in resp.text
+    assert "Scripts" in resp.text
 
 
-def test_dashboard_stats_partial(auth_client):
-    resp = auth_client.get("/dashboard/stats")
+def test_dashboard_stats_partial(client):
+    resp = client.get("/dashboard/stats")
     assert resp.status_code == 200
     assert 'id="stat-cards"' in resp.text
-    # It's a fragment, not a full page.
-    assert "<html" not in resp.text
+    assert "<html" not in resp.text  # fragment only
 
 
 def test_healthz(client):
     resp = client.get("/healthz")
     assert resp.status_code == 200
-    assert resp.json()["status"] == "ok"
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["app"] == "OGTV Writer"

@@ -1,0 +1,80 @@
+{% extends "shell.html" %}
+{% block page_title %}Edit · {{ script.title }}{% endblock %}
+
+{% set v = values or {} %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <a href="/scripts/{{ script.id }}" class="text-sm text-brand hover:underline">← Back to script</a>
+    <h1 class="mt-1 text-2xl font-semibold tracking-tight">Edit script</h1>
+  </div>
+
+  <form method="post" action="/scripts/{{ script.id }}" class="grid gap-6 lg:grid-cols-3">
+    <!-- Body -->
+    <section class="card lg:col-span-2">
+      <div class="border-b border-border px-5 py-3">
+        <h2 class="text-sm font-semibold">Markdown</h2>
+      </div>
+      <div class="p-5">
+        <label class="label" for="title">Title</label>
+        <input id="title" name="title" class="input" value="{{ v.get('title', script.title) }}" />
+        {% if errors.title %}<p class="field-error">{{ errors.title }}</p>{% endif %}
+
+        <label class="label mt-4" for="body">Script (markdown)</label>
+        <textarea id="body" name="body" rows="22" class="input font-mono text-xs leading-relaxed">{{ v.get('body', script.body) }}</textarea>
+        {% if errors.body %}<p class="field-error">{{ errors.body }}</p>{% endif %}
+      </div>
+    </section>
+
+    <!-- Metadata -->
+    <aside class="space-y-6">
+      <section class="card p-5">
+        <h2 class="text-sm font-semibold">Metadata</h2>
+
+        {% set cur_status = v.get('status', script.status) %}
+        <label class="label mt-4" for="status">Status</label>
+        <select id="status" name="status" class="input">
+          {% for value, label in SCRIPT_STATUS_LABELS.items() %}
+            <option value="{{ value }}" {% if cur_status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        {% set cur_model = v.get('target_model', script.target_model) %}
+        <label class="label mt-4" for="target_model">Target model</label>
+        <select id="target_model" name="target_model" class="input">
+          {% for value, label in MODEL_LABELS.items() %}
+            <option value="{{ value }}" {% if cur_model == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        {% set cur_format = v.get('output_format', script.output_format) %}
+        <label class="label mt-4" for="output_format">Output format</label>
+        <select id="output_format" name="output_format" class="input">
+          {% for value, label in FORMAT_LABELS.items() %}
+            <option value="{{ value }}" {% if cur_format == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <label class="label mt-4" for="tags">Tags</label>
+        <input id="tags" name="tags" class="input" value="{{ v.get('tags', script.tags) }}" placeholder="gym, veo, cinematic" />
+        <p class="mt-1 text-xs text-muted">Comma-separated.</p>
+
+        <label class="label mt-4" for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="3" class="input">{{ v.get('notes', script.notes) }}</textarea>
+      </section>
+
+      <section class="card p-5">
+        <label class="label" for="prompt_source">Prompt source</label>
+        <textarea id="prompt_source" name="prompt_source" rows="5" class="input font-mono text-xs">{{ v.get('prompt_source', script.prompt_source) }}</textarea>
+        <p class="mt-1 text-xs text-muted">The source prompt this script came from.</p>
+      </section>
+
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary flex-1">Save changes</button>
+        <a href="/scripts/{{ script.id }}" class="btn-secondary">Cancel</a>
+      </div>
+    </aside>
+  </form>
+</div>
+{% endblock %}

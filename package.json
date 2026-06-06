@@ -1,6 +1,6 @@
 {
   "//": "Node is used ONLY to compile Tailwind CSS. There is no JS framework and no bundler. This keeps the frontend build a single, optional step. If you prefer zero Node, swap to the Tailwind standalone binary (see README).",
-  "name": "hyperstack",
+  "name": "ogtv-writer",
   "version": "0.1.0",
   "private": true,
   "scripts": {

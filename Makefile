@@ -84,7 +84,7 @@ test-all: ## Run every test (unit + integration + e2e)
 # --- Docker -------------------------------------------------------------------
 .PHONY: docker-build
 docker-build: ## Build the Docker image
-	docker build -t hyperstack .
+	docker build -t ogtv-writer .
 
 .PHONY: docker-run
 docker-run: ## Run the app via docker compose

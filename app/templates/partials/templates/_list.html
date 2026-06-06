@@ -1,0 +1,18 @@
+{#
+  Template grid. Root id="template-list" is the swap target for search /
+  create / edit / delete. `oob` swaps the whole grid out-of-band (modal close).
+#}
+<div id="template-list" {% if oob %}hx-swap-oob="true"{% endif %}>
+  {% if templates %}
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    {% for template in templates %}
+      {% include "partials/templates/_row.html" %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card px-5 py-16 text-center">
+    <p class="text-sm font-medium">No templates yet</p>
+    <p class="mt-1 text-sm text-muted">Create a reusable Veo / Wan pattern to speed up generation.</p>
+  </div>
+  {% endif %}
+</div>

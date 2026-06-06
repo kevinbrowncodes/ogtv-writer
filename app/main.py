@@ -18,16 +18,16 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.database import init_db
-from app.dependencies import NotAuthenticated
 from app.logging_config import configure_logging
-from app.routes import auth, health, items, pages, pwa
+from app.routes import generate, health, pages, prompts, pwa, scripts, tags
+from app.routes import script_templates as script_templates_routes
 from app.routes import settings as settings_routes
 from app.templating import templates
 
@@ -66,7 +66,7 @@ def create_app() -> FastAPI:
     )
 
     # --- Middleware ----------------------------------------------------------
-    # Signed session cookie (powers login + flash messages).
+    # Signed session cookie — carries one-shot flash messages (no login here).
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.secret_key,
@@ -87,31 +87,18 @@ def _register_routers(app: FastAPI) -> None:
     """The single place routers are mounted. Add new feature routers here."""
     app.include_router(health.router)
     app.include_router(pwa.router)
-    app.include_router(auth.router)
     app.include_router(pages.router)
-    app.include_router(items.router)
+    app.include_router(prompts.router)
+    app.include_router(generate.router)
+    app.include_router(scripts.router)
+    app.include_router(script_templates_routes.router)
+    app.include_router(tags.router)
     app.include_router(settings_routes.router)
     # >>> INCLUDE NEW FEATURE ROUTERS BELOW <<<
-    # app.include_router(billing.router)
 
 
 def _register_exception_handlers(app: FastAPI) -> None:
     settings = get_settings()
-
-    @app.exception_handler(NotAuthenticated)
-    async def _not_authenticated(request: Request, exc: NotAuthenticated) -> Response:
-        """Send unauthenticated users to the login page.
-
-        For HTMX requests we use the `HX-Redirect` response header so the
-        browser does a full navigation instead of swapping the login page into
-        a fragment.
-        """
-        login_url = "/login"
-        if exc.next_url and exc.next_url != "/":
-            login_url = f"/login?next={exc.next_url}"
-        if request.headers.get("HX-Request") == "true":
-            return Response(status_code=204, headers={"HX-Redirect": login_url})
-        return RedirectResponse(url=login_url, status_code=303)
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_exception(request: Request, exc: StarletteHTTPException) -> Response:

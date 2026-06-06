@@ -1,0 +1,67 @@
+{#
+  Create / edit prompt modal. Expects `prompt` (None on create), `errors`, and
+  `values` (form values on re-render after a validation error).
+
+  On success the server returns only an out-of-band #prompt-list, so #modal is
+  emptied and the dialog closes (see routes/prompts.py + _list.html).
+#}
+{% set is_edit = prompt is not none %}
+{% set v = values or {} %}
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4" data-modal-overlay>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-modal-close></div>
+
+  <div class="relative w-full max-w-xl rounded-xl border border-border bg-surface shadow-xl"
+       role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="flex items-center justify-between border-b border-border px-5 py-4">
+      <h2 id="modal-title" class="font-semibold">{{ "Edit prompt" if is_edit else "New prompt" }}</h2>
+      <button type="button" class="btn-ghost px-2 py-1" data-modal-close aria-label="Close">✕</button>
+    </div>
+
+    <form
+      {% if is_edit %}hx-put="/prompts/{{ prompt.id }}"{% else %}hx-post="/prompts"{% endif %}
+      hx-target="#modal" hx-swap="innerHTML" class="space-y-4 p-5"
+    >
+      <div>
+        <label class="label" for="title">Title</label>
+        <input id="title" name="title" class="input" autofocus
+               value="{{ v.get('title') or (prompt.title if is_edit else '') }}"
+               placeholder="e.g. Sunrise gym hero shot" />
+        {% if errors.title %}<p class="field-error">{{ errors.title }}</p>{% endif %}
+      </div>
+
+      <div>
+        <label class="label" for="body">Markdown prompt</label>
+        <textarea id="body" name="body" rows="8" class="input font-mono text-xs"
+                  placeholder="# Scene&#10;A lone athlete...">{{ v.get('body') or (prompt.body if is_edit else '') }}</textarea>
+        {% if errors.body %}<p class="field-error">{{ errors.body }}</p>{% endif %}
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="label" for="tags">Tags</label>
+          <input id="tags" name="tags" class="input"
+                 value="{{ v.get('tags') or (prompt.tags if is_edit else '') }}"
+                 placeholder="gym, veo, cinematic" />
+          <p class="mt-1 text-xs text-muted">Comma-separated (theme / model / style).</p>
+        </div>
+        <div>
+          <label class="label" for="status">Status</label>
+          {% set current = v.get('status') or (prompt.status if is_edit else 'draft') %}
+          <select id="status" name="status" class="input">
+            {% for value, label in PROMPT_STATUS_LABELS.items() %}
+              <option value="{{ value }}" {% if current == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn-primary">
+          <span>{{ "Save changes" if is_edit else "Save prompt" }}</span>
+          <svg class="htmx-indicator h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

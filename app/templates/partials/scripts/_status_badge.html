@@ -1,0 +1,20 @@
+{#
+  Script status pill. Expects `status` (string). Colors map to the lifecycle:
+  draft (muted) → ready (brand) → used (success) → archived (faded).
+#}
+{% set styles = {
+  "draft": "bg-surface-2 text-muted",
+  "ready": "bg-brand/15 text-brand",
+  "used": "bg-success/15 text-success",
+  "archived": "bg-surface-2 text-muted line-through decoration-muted/60",
+} %}
+{% set dots = {
+  "draft": "bg-muted",
+  "ready": "bg-brand",
+  "used": "bg-success",
+  "archived": "bg-muted",
+} %}
+<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium {{ styles.get(status, 'bg-surface-2 text-muted') }}">
+  <span class="h-1.5 w-1.5 rounded-full {{ dots.get(status, 'bg-muted') }}"></span>
+  {{ SCRIPT_STATUS_LABELS.get(status, status|capitalize) }}
+</span>

@@ -5,22 +5,10 @@
 <div class="space-y-6">
   <div>
     <h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
-    <p class="text-sm text-muted">Manage your account and app preferences.</p>
+    <p class="text-sm text-muted">App preferences for your {{ settings.brand_name }} studio workflow.</p>
   </div>
 
   <div class="grid gap-6 lg:grid-cols-2">
-    <!-- Profile -->
-    <section class="card p-5">
-      <h2 class="mb-4 font-semibold">Profile</h2>
-      {% include "partials/settings/_profile_form.html" %}
-    </section>
-
-    <!-- Password -->
-    <section class="card p-5">
-      <h2 class="mb-4 font-semibold">Password</h2>
-      {% include "partials/settings/_password_form.html" %}
-    </section>
-
     <!-- Appearance -->
     <section class="card p-5">
       <h2 class="font-semibold">Appearance</h2>
@@ -36,7 +24,6 @@
       <p class="mt-1 text-sm text-muted">Set these via environment variables.</p>
       <ul class="mt-4 space-y-2 text-sm">
         {% for name, value in {
-          "Signups": settings.feature_signups,
           "Dark mode": settings.feature_dark_mode,
           "Dashboard": settings.feature_dashboard,
         }.items() %}
@@ -48,6 +35,32 @@
         </li>
         {% endfor %}
       </ul>
+    </section>
+
+    <!-- About -->
+    <section class="card p-5 lg:col-span-2">
+      <h2 class="font-semibold">About</h2>
+      <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <div class="flex items-center justify-between gap-3">
+          <dt class="text-muted">App</dt>
+          <dd class="font-medium">{{ settings.app_name }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <dt class="text-muted">Brand</dt>
+          <dd class="font-medium">{{ settings.brand_name }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <dt class="text-muted">Environment</dt>
+          <dd class="font-medium">{{ settings.environment }}</dd>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <dt class="text-muted">Role</dt>
+          <dd class="font-medium">Writer</dd>
+        </div>
+      </dl>
+      <p class="mt-4 text-xs text-muted">
+        This is an internal production tool — no login required.
+      </p>
     </section>
   </div>
 </div>

@@ -33,15 +33,18 @@ class Settings(BaseSettings):
     )
 
     # --- App identity ---------------------------------------------------------
-    app_name: str = "Hyperstack"
+    app_name: str = "OGTV Writer"
     app_url: str = "http://localhost:8000"
-    app_description: str = "A generic FastAPI + HTMX + Tailwind starter."
+    app_description: str = "OnlyGainsTV Writer — generate, organize, and export AI video scripts."
+    brand_name: str = "OnlyGainsTV"
 
     # --- Environment ----------------------------------------------------------
     environment: Environment = "development"
     debug: bool = True
 
     # --- Security -------------------------------------------------------------
+    # Still used to sign the session cookie that carries one-shot flash messages.
+    # (There is no login in this internal tool — see app/dependencies.py.)
     secret_key: str = "dev-only-insecure-change-me"
 
     # --- Database -------------------------------------------------------------
@@ -51,19 +54,15 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
-    # --- Seed / demo credentials ---------------------------------------------
-    seed_user_email: str = "admin@example.com"
-    seed_user_password: str = "password123"
-
     # --- Feature flags --------------------------------------------------------
     # Gate whole areas of the app without touching code. Read them in templates
     # (`settings.feature_*`) or in routes to short-circuit with a 404/redirect.
-    feature_signups: bool = True
     feature_dark_mode: bool = True
     feature_dashboard: bool = True
 
     # >>> ADD APP-SPECIFIC SETTINGS BELOW THIS LINE <<<
-    # stripe_secret_key: str = ""
+    # To plug a real LLM into the script generator later, add a key here and
+    # read it from app/services/generation_service.py.
     # anthropic_api_key: str = ""
 
     # --- Derived helpers ------------------------------------------------------

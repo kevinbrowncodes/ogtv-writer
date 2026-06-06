@@ -1,6 +1,7 @@
-"""Hyperstack application package.
+"""OGTV Writer application package.
 
-This is the top-level package for the FastAPI app. The public entry point is
+The "Writer" tool for the OnlyGainsTV video studio workflow: turn markdown
+prompts into structured, model-ready AI video scripts. The public entry point is
 :func:`app.main.create_app`, which builds and returns the configured FastAPI
 instance.
 """

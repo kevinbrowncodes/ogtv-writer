@@ -3,6 +3,9 @@
 IMPORTANT: environment variables are set BEFORE importing the app, because
 `app.config` and `app.database` read settings at import time. This points the
 tests at a dedicated SQLite file and a test secret.
+
+OGTV Writer has no login, so there's no auth/user fixture — `client` can hit
+every route directly.
 """
 
 from __future__ import annotations
@@ -21,11 +24,6 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models.user import User  # noqa: E402
-from app.services import user_service  # noqa: E402
-
-TEST_USER_EMAIL = "test@example.com"
-TEST_USER_PASSWORD = "password123"
 
 
 @pytest.fixture(autouse=True)
@@ -56,23 +54,3 @@ def client() -> TestClient:
     """A TestClient. Using it as a context manager runs the app lifespan."""
     with TestClient(app) as test_client:
         yield test_client
-
-
-@pytest.fixture
-def user(db: Session) -> User:
-    """A persisted, active user for tests that need an account."""
-    return user_service.create_user(
-        db, email=TEST_USER_EMAIL, password=TEST_USER_PASSWORD, name="Test User"
-    )
-
-
-@pytest.fixture
-def auth_client(client: TestClient, user: User) -> TestClient:
-    """A TestClient that has already logged in (session cookie set)."""
-    resp = client.post(
-        "/login",
-        data={"email": TEST_USER_EMAIL, "password": TEST_USER_PASSWORD},
-        follow_redirects=False,
-    )
-    assert resp.status_code == 303, resp.text
-    return client

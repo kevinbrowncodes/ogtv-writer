@@ -1,0 +1,41 @@
+{#
+  A single script library row. Expects `script`.
+  - inline status <select> (hx-post) swaps this <tr>
+  - Open → detail page; Delete → refreshes #script-list
+#}
+<tr id="script-{{ script.id }}" class="align-top transition hover:bg-surface-2/40">
+  <td class="px-5 py-3">
+    <a href="/scripts/{{ script.id }}" class="font-medium hover:text-brand">{{ script.title }}</a>
+    <div class="mt-1 flex flex-wrap gap-1">
+      {% for tag in parse_tags(script.tags) %}
+        <span class="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">{{ tag }}</span>
+      {% endfor %}
+    </div>
+  </td>
+  <td class="hidden px-5 py-3 text-muted md:table-cell">{{ MODEL_LABELS.get(script.target_model, script.target_model) }}</td>
+  <td class="hidden px-5 py-3 text-muted md:table-cell">{{ FORMAT_LABELS.get(script.output_format, script.output_format) }}</td>
+  <td class="px-5 py-3">
+    <select
+      name="status" aria-label="Status"
+      class="input w-28 py-1 text-xs"
+      hx-post="/scripts/{{ script.id }}/status"
+      hx-target="#script-{{ script.id }}"
+      hx-swap="outerHTML"
+    >
+      {% for value, label in SCRIPT_STATUS_LABELS.items() %}
+        <option value="{{ value }}" {% if script.status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </td>
+  <td class="hidden px-5 py-3 text-xs text-muted lg:table-cell">{{ script.updated_at.strftime("%b %d, %Y") }}</td>
+  <td class="px-5 py-3">
+    <div class="flex justify-end gap-1">
+      <a class="btn-ghost px-2.5 py-1" href="/scripts/{{ script.id }}">Open</a>
+      <button
+        type="button" class="btn-ghost px-2.5 py-1 text-danger hover:text-danger"
+        hx-delete="/scripts/{{ script.id }}" hx-target="#script-list" hx-swap="outerHTML"
+        hx-confirm="Delete “{{ script.title }}”? This cannot be undone."
+      >Delete</button>
+    </div>
+  </td>
+</tr>

@@ -44,27 +44,9 @@ def _flash_context(request: Request) -> dict[str, Any]:
     return {"flashed_messages": messages}
 
 
-def _user_context(request: Request) -> dict[str, Any]:
-    """Expose `current_user` to every template (e.g. the topbar avatar/menu).
-
-    Imports are local to avoid an import cycle (database/models import late).
-    """
-    if "session" not in request.scope:
-        return {"current_user": None}
-    user_id = request.session.get("user_id")
-    if user_id is None:
-        return {"current_user": None}
-
-    from app.database import SessionLocal
-    from app.models.user import User
-
-    with SessionLocal() as db:
-        return {"current_user": db.get(User, user_id)}
-
-
 templates = Jinja2Templates(
     directory=str(TEMPLATES_DIR),
-    context_processors=[_settings_context, _request_context, _flash_context, _user_context],
+    context_processors=[_settings_context, _request_context, _flash_context],
 )
 
 # Reload templates from disk on each render in development (set on the Jinja
@@ -73,6 +55,22 @@ templates.env.auto_reload = get_settings().is_development
 
 # Make a couple of helpers available inside templates.
 templates.env.globals["app_name"] = get_settings().app_name
+
+# Domain vocabulary → labels, so templates can render friendly names for the
+# controlled values stored on prompts/scripts/templates/tags.
+from app import domain  # noqa: E402  (after templates is defined; avoids a cycle)
+
+templates.env.globals.update(
+    {
+        "MODEL_LABELS": domain.MODEL_LABELS,
+        "FORMAT_LABELS": domain.FORMAT_LABELS,
+        "SCRIPT_STATUS_LABELS": domain.SCRIPT_STATUS_LABELS,
+        "PROMPT_STATUS_LABELS": domain.PROMPT_STATUS_LABELS,
+        "TEMPLATE_CATEGORY_LABELS": domain.TEMPLATE_CATEGORY_LABELS,
+        "TAG_KIND_LABELS": domain.TAG_KIND_LABELS,
+        "parse_tags": domain.parse_tags,
+    }
+)
 
 
 # --- Flash messages ----------------------------------------------------------

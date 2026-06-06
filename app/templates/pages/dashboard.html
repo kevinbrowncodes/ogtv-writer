@@ -6,52 +6,76 @@
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
       <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
-      <p class="text-sm text-muted">
-        Welcome back{% if current_user %}, {{ current_user.name or current_user.email }}{% endif %}.
-      </p>
+      <p class="text-sm text-muted">{{ settings.brand_name }} studio — your Writer workspace.</p>
     </div>
-    <a href="/items" class="btn-primary">Manage items</a>
+    <div class="flex gap-2">
+      {# Quick action: open the New Prompt modal (the shell provides #modal). #}
+      <button
+        type="button"
+        class="btn-secondary"
+        hx-get="/prompts/new"
+        hx-target="#modal"
+        hx-swap="innerHTML"
+      >
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        New prompt
+      </button>
+      <a href="/generate" class="btn-primary">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>
+        Generate scripts
+      </a>
+    </div>
   </div>
 
   {# Self-refreshing stat cards (HTMX polling). #}
   {% include "partials/_stat_cards.html" %}
 
   <div class="grid gap-6 lg:grid-cols-3">
-    <!-- Recent items -->
+    <!-- Recent scripts -->
     <section class="card lg:col-span-2">
       <div class="flex items-center justify-between border-b border-border px-5 py-4">
-        <h2 class="font-semibold">Recent items</h2>
-        <a href="/items" class="text-sm text-brand hover:underline">View all →</a>
+        <h2 class="font-semibold">Recent scripts</h2>
+        <a href="/scripts" class="text-sm text-brand hover:underline">View library →</a>
       </div>
       <ul class="divide-y divide-border">
-        {% for item in recent_items %}
+        {% for script in recent_scripts %}
         <li class="flex items-center justify-between gap-3 px-5 py-3">
           <div class="min-w-0">
-            <p class="truncate font-medium">{{ item.title }}</p>
-            <p class="truncate text-xs text-muted">{{ item.description or "No description" }}</p>
+            <a href="/scripts/{{ script.id }}" class="truncate font-medium hover:text-brand">{{ script.title }}</a>
+            <p class="truncate text-xs text-muted">
+              {{ MODEL_LABELS.get(script.target_model, script.target_model) }}
+              · {{ FORMAT_LABELS.get(script.output_format, script.output_format) }}
+            </p>
           </div>
-          {% include "partials/items/_status_badge.html" %}
+          {% with status = script.status %}{% include "partials/scripts/_status_badge.html" %}{% endwith %}
         </li>
         {% else %}
         <li class="px-5 py-10 text-center text-sm text-muted">
-          No items yet. <a href="/items" class="text-brand hover:underline">Create your first one</a>.
+          No scripts yet. <a href="/generate" class="text-brand hover:underline">Generate your first batch</a>.
         </li>
         {% endfor %}
       </ul>
     </section>
 
-    <!-- Placeholder widget: replace with KPIs, charts, shortcuts, etc. -->
+    <!-- Quick actions / workflow -->
     <section class="card p-5">
-      <h2 class="font-semibold">Getting started</h2>
-      <p class="mt-2 text-sm text-muted">
-        This is a placeholder widget. Swap it for the metrics or quick actions
-        your app needs.
-      </p>
-      <ul class="mt-4 space-y-2 text-sm">
-        <li><a href="/items" class="text-brand hover:underline">→ Try the Items CRUD demo</a></li>
-        <li><a href="/settings" class="text-brand hover:underline">→ Update your settings</a></li>
-        <li><span class="text-muted">→ Edit <code class="rounded bg-surface-2 px-1">app/templates/pages/dashboard.html</code></span></li>
-      </ul>
+      <h2 class="font-semibold">Studio workflow</h2>
+      <ol class="mt-4 space-y-3 text-sm">
+        <li class="flex gap-3">
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand">1</span>
+          <span><a href="/prompts" class="text-brand hover:underline">Drop a prompt</a> into the inbox.</span>
+        </li>
+        <li class="flex gap-3">
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand">2</span>
+          <span><a href="/generate" class="text-brand hover:underline">Generate</a> 1–10 script variations.</span>
+        </li>
+        <li class="flex gap-3">
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand">3</span>
+          <span>Edit, mark <span class="font-medium text-brand">ready</span>, then copy/export to Veo or Wan.</span>
+        </li>
+      </ol>
+      <a href="/templates" class="mt-5 block text-sm text-brand hover:underline">→ Manage reusable templates</a>
+      <a href="/tags" class="mt-2 block text-sm text-brand hover:underline">→ Manage tags</a>
     </section>
   </div>
 </div>

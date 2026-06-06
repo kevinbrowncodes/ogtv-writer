@@ -1,0 +1,34 @@
+{% extends "shell.html" %}
+{% block page_title %}Tags{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Tags</h1>
+    <p class="text-sm text-muted">Your canonical themes, models, and styles — reuse them across prompts and scripts.</p>
+  </div>
+
+  <!-- Add tag (HTMX; the list below swaps in place) -->
+  <form
+    class="card flex flex-wrap items-end gap-3 p-4"
+    hx-post="/tags" hx-target="#tag-list" hx-swap="outerHTML"
+    hx-on::after-request="if(event.detail.successful) this.reset()"
+  >
+    <div class="min-w-0 flex-1">
+      <label class="label" for="name">New tag</label>
+      <input id="name" name="name" class="input" placeholder="e.g. sunrise" autocomplete="off" />
+    </div>
+    <div>
+      <label class="label" for="kind">Kind</label>
+      <select id="kind" name="kind" class="input sm:w-40">
+        {% for value, label in TAG_KIND_LABELS.items() %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">Add tag</button>
+  </form>
+
+  {% include "partials/tags/_list.html" %}
+</div>
+{% endblock %}

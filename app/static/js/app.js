@@ -1,11 +1,12 @@
 /* ==========================================================================
    app.js — the ENTIRE client-side footprint of the app.
 
-   Deliberately tiny and framework-free. It handles four things:
+   Deliberately tiny and framework-free. It handles five things:
      1. Dark mode toggle (persisted to localStorage)
      2. Mobile sidebar open/close
      3. Modal close (clears the #modal container)
      4. Toast notifications (driven by HTMX `HX-Trigger: {"toast": ...}`)
+     5. Copy-to-clipboard buttons ([data-copy="#selector"])
    ...plus registering the service worker for PWA support.
 
    Everything dynamic on the server side is done with HTMX attributes in the
@@ -68,11 +69,28 @@
     }, 3000);
   }
 
+  /* --- 5. Copy to clipboard --------------------------------------------- */
+  // <button data-copy="#script-body" data-copied="Copied!">Copy</button>
+  // Copies the value/textContent of the element matched by data-copy.
+  function copyFrom(trigger) {
+    const sel = trigger.getAttribute("data-copy");
+    const source = sel ? document.querySelector(sel) : null;
+    if (!source) return;
+    const text = "value" in source ? source.value : source.textContent;
+    const done = () =>
+      showToast({ message: trigger.getAttribute("data-copied") || "Copied to clipboard.", category: "success" });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () {});
+    }
+  }
+
   /* --- Event wiring (delegated, so it survives HTMX swaps) --------------- */
   document.addEventListener("click", function (e) {
     if (e.target.closest("[data-theme-toggle]")) {
       e.preventDefault();
       toggleTheme();
+    } else if (e.target.closest("[data-copy]")) {
+      copyFrom(e.target.closest("[data-copy]"));
     } else if (e.target.closest("[data-sidebar-open]")) {
       setSidebar(true);
     } else if (e.target.closest("[data-sidebar-close]")) {

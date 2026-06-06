@@ -1,7 +1,7 @@
-"""End-to-end smoke tests covering the core user journeys.
+"""End-to-end smoke tests covering the core OGTV Writer journeys.
 
-Covered: login flow, dashboard rendering, an HTMX interaction (live search),
-and the Items CRUD flow (create via modal + delete).
+Covered: dashboard render, creating a prompt via the HTMX modal, generating
+scripts from the workspace, and the script library.
 """
 
 from __future__ import annotations
@@ -9,64 +9,43 @@ from __future__ import annotations
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.e2e.conftest import E2E_EMAIL, E2E_PASSWORD
-
 # Every test in this module is an e2e test (excluded from the default run).
 pytestmark = pytest.mark.e2e
 
 
-def _login(page: Page, base_url: str) -> None:
-    page.goto(f"{base_url}/login")
-    page.fill('input[name="email"]', E2E_EMAIL)
-    page.fill('input[name="password"]', E2E_PASSWORD)
-    page.click('button[type="submit"]')
-    page.wait_for_url("**/dashboard")
-
-
-def test_login_and_dashboard_render(page: Page, live_server: str):
-    _login(page, live_server)
+def test_dashboard_renders(page: Page, live_server: str):
+    page.goto(f"{live_server}/dashboard")
     expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
     expect(page.locator("#stat-cards")).to_be_visible()
 
 
-def test_create_item_via_htmx_modal(page: Page, live_server: str):
-    _login(page, live_server)
-    page.goto(f"{live_server}/items")
+def test_create_prompt_via_htmx_modal(page: Page, live_server: str):
+    page.goto(f"{live_server}/prompts")
 
-    page.get_by_role("button", name="New item").click()
-    expect(page.locator("#modal")).to_contain_text("New item")  # modal opened
+    page.get_by_role("button", name="New prompt").click()
+    expect(page.locator("#modal")).to_contain_text("New prompt")
 
-    page.fill("#title", "Playwright created item")
-    page.get_by_role("button", name="Create item").click()
+    page.fill("#title", "Playwright prompt")
+    page.fill("#body", "# Scene\na test prompt")
+    page.get_by_role("button", name="Save prompt").click()
 
-    # The modal closes and the list updates (out-of-band swap).
-    expect(page.locator("#item-list")).to_contain_text("Playwright created item")
+    # The modal closes (out-of-band swap) and the list updates.
+    expect(page.locator("#prompt-list")).to_contain_text("Playwright prompt")
     expect(page.locator("#modal")).to_be_empty()
 
 
-def test_live_search_filters_list(page: Page, live_server: str):
-    _login(page, live_server)
-    page.goto(f"{live_server}/items")
+def test_generate_scripts_flow(page: Page, live_server: str):
+    page.goto(f"{live_server}/generate")
 
-    page.fill('input[name="q"]', "Seeded")
-    # Debounced HTMX request swaps in the filtered list; expect auto-waits.
-    expect(page.locator("#item-list")).to_contain_text("Seeded item")
-    expect(page.locator("#item-list")).not_to_contain_text("Playwright created item")
+    page.fill("#source", "# Scene\nA lone athlete sprints up stadium stairs")
+    page.select_option("#count", "3")
+    page.get_by_role("button", name="Generate scripts").click()
+
+    # Lands on the library, filtered to the new drafts.
+    page.wait_for_url("**/scripts**")
+    expect(page.locator("#script-list")).to_be_visible()
 
 
-def test_delete_item(page: Page, live_server: str):
-    _login(page, live_server)
-    page.goto(f"{live_server}/items")
-
-    # Create a throwaway item to delete.
-    page.get_by_role("button", name="New item").click()
-    page.fill("#title", "Temp delete me")
-    page.get_by_role("button", name="Create item").click()
-    row = page.locator("tr", has_text="Temp delete me")
-    expect(row).to_be_visible()
-
-    # hx-confirm pops a native dialog — auto-accept it.
-    page.on("dialog", lambda dialog: dialog.accept())
-    row.get_by_role("button", name="Delete").click()
-
-    expect(page.locator("#item-list")).not_to_contain_text("Temp delete me")
+def test_library_shows_seeded_script(page: Page, live_server: str):
+    page.goto(f"{live_server}/scripts")
+    expect(page.locator("#script-list")).to_contain_text("Seeded script")

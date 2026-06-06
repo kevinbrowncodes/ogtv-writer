@@ -1,0 +1,80 @@
+{#
+  Create / edit script-template modal. Expects `template` (None on create),
+  `errors`, and `values`. On success the server returns the out-of-band grid,
+  which empties #modal and closes the dialog.
+#}
+{% set is_edit = template is not none %}
+{% set v = values or {} %}
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4" data-modal-overlay>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-modal-close></div>
+
+  <div class="relative w-full max-w-xl rounded-xl border border-border bg-surface shadow-xl"
+       role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="flex items-center justify-between border-b border-border px-5 py-4">
+      <h2 id="modal-title" class="font-semibold">{{ "Edit template" if is_edit else "New template" }}</h2>
+      <button type="button" class="btn-ghost px-2 py-1" data-modal-close aria-label="Close">✕</button>
+    </div>
+
+    <form
+      {% if is_edit %}hx-put="/templates/{{ template.id }}"{% else %}hx-post="/templates"{% endif %}
+      hx-target="#modal" hx-swap="innerHTML" class="space-y-4 p-5"
+    >
+      <div>
+        <label class="label" for="name">Name</label>
+        <input id="name" name="name" class="input" autofocus
+               value="{{ v.get('name') or (template.name if is_edit else '') }}"
+               placeholder="e.g. Veo cinematic hero" />
+        {% if errors.name %}<p class="field-error">{{ errors.name }}</p>{% endif %}
+      </div>
+
+      <div>
+        <label class="label" for="description">Description</label>
+        <input id="description" name="description" class="input"
+               value="{{ v.get('description') or (template.description if is_edit else '') }}"
+               placeholder="When to reach for this pattern" />
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-3">
+        {% set cur_cat = v.get('category') or (template.category if is_edit else 'general') %}
+        <div>
+          <label class="label" for="category">Category</label>
+          <select id="category" name="category" class="input">
+            {% for value, label in TEMPLATE_CATEGORY_LABELS.items() %}
+              <option value="{{ value }}" {% if cur_cat == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% set cur_model = v.get('target_model') or (template.target_model if is_edit else 'generic') %}
+        <div>
+          <label class="label" for="target_model">Model</label>
+          <select id="target_model" name="target_model" class="input">
+            {% for value, label in MODEL_LABELS.items() %}
+              <option value="{{ value }}" {% if cur_model == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% set cur_fmt = v.get('output_format') or (template.output_format if is_edit else 'short-form') %}
+        <div>
+          <label class="label" for="output_format">Format</label>
+          <select id="output_format" name="output_format" class="input">
+            {% for value, label in FORMAT_LABELS.items() %}
+              <option value="{{ value }}" {% if cur_fmt == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="label" for="body">Pattern (markdown)</label>
+        <textarea id="body" name="body" rows="8" class="input font-mono text-xs"
+                  placeholder="Use {subject}, {camera}, {lighting}, {mood}, {brand} as placeholders…">{{ v.get('body') or (template.body if is_edit else '') }}</textarea>
+        <p class="mt-1 text-xs text-muted">Placeholders the generator fills: <code>{subject}</code>, <code>{model}</code>, <code>{format}</code>, <code>{camera}</code>, <code>{lighting}</code>, <code>{mood}</code>, <code>{brand}</code>.</p>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-secondary" data-modal-close>Cancel</button>
+        <button type="submit" class="btn-primary">{{ "Save changes" if is_edit else "Save template" }}</button>
+      </div>
+    </form>
+  </div>
+</div>
