@@ -17,15 +17,16 @@ clean Markdown.
 Prompt (markdown)  →  Generate N variations  →  Edit / tag / status  →  Copy / export .md → Veo / Wan
 ```
 
-- **Prompt inbox** — paste markdown prompts, save drafts, tag by theme/model/style.
-- **Generate** — pick a source prompt, a target model (Veo / Wan / Generic), an
-  output format, and how many scripts to make (1, 3, 5, 10). Get that many
-  distinct, structured drafts in your library.
-- **Script library** — search and filter by model, status, theme/tag, and date.
-- **Script detail** — view the markdown, edit it, **copy to clipboard**,
-  **export `.md`**, **duplicate**, and **create more variations**.
-- **Templates** — reusable script/prompt patterns (Veo cinematic, Wan motion,
-  shot structures) that drop straight into the generator.
+- **Prompt library** — your reusable instruction prompts as `.md` files in
+  `app/static/prompts/`; browse and preview them, no database.
+- **Generate** — pick a prompt, upload a **first-frame image**, add an optional
+  addendum and (for `{{COUNT}}` prompts) a count, and queue a job.
+- **Queue** — an in-process worker sends each job to **Gemini** in the background;
+  watch its status go `queued → running → done` live.
+- **Script library** — search and filter by status, tag, and date; the scripts a
+  job produces land here automatically.
+- **Script detail** — view the markdown, edit it, **copy to clipboard**, and
+  **export `.md`** (or download a whole run as a `.zip`).
 - **Tags** — your canonical catalog of themes, models, and styles.
 
 ### Script lifecycle
@@ -37,16 +38,18 @@ date" automatically.
 
 ## The generator
 
-The generator is **offline and deterministic** — no API key, no network. For
-each variation it layers a rotating cinematic "lens" (camera / lighting / mood)
-over a model- and format-specific pattern, producing distinct, paste-ready
-markdown with a **Master prompt**, a **Structure** breakdown, **Tech** notes
-(aspect ratio / duration), and an **Avoid** list tuned per model.
+The generator calls **Google Gemini** (multimodal). A job pairs a prompt file
+with an uploaded first-frame image (and an optional addendum); the assembled
+prompt — `{{COUNT}}` substituted, addendum appended, plus an output contract — is
+sent to Gemini by an **in-process background worker**. The response is parsed into
+individual scripts (plus titles and a summary) and saved to the library.
 
-Want a real LLM later? [`app/services/generation_service.py`](app/services/generation_service.py)
-is the single seam: keep `create_scripts()` and swap the body of
-`build_script_body()` for a Claude/OpenAI call (add the key in
-[`app/config.py`](app/config.py)). Routes, library, and export don't change.
+Set `GEMINI_API_KEY` in `.env` to enable generation (get a free key at
+[aistudio.google.com](https://aistudio.google.com)); without it, jobs queue and
+then fail with a clear message. The single seam is
+[`app/services/gemini_client.py`](app/services/gemini_client.py) — swap it for a
+different provider without touching routes, parsing, the library, or export. Tests
+mock it, so the suite never makes a live, paid call.
 
 ---
 
@@ -59,6 +62,7 @@ is the single seam: keep `create_scripts()` and swap the body of
 | Interactivity| **HTMX** (AJAX/partials via HTML attributes) |
 | Styling      | **Tailwind CSS** |
 | Data         | **SQLAlchemy 2.0 + SQLite** |
+| AI           | **Google Gemini** (`google-genai`, multimodal) |
 | Tests        | **pytest + Playwright** |
 | PWA          | manifest + service worker (installable, offline app-shell) |
 
@@ -131,17 +135,18 @@ make dev-all
 app/
 ├── main.py                  # App factory + router wiring
 ├── config.py                # Typed settings from env (.env)
-├── domain.py                # Controlled vocab + labels (models, formats, statuses)
+├── domain.py                # Controlled vocab + labels (script + job statuses, tag kinds)
 ├── database.py              # SQLAlchemy engine/session/Base + get_db
 ├── dependencies.py          # DbSession (no auth — internal tool)
 ├── templating.py            # Jinja2 setup, flash(), toast helpers, domain globals
-├── models/                  # Prompt, Script, ScriptTemplate, Tag
+├── models/                  # Job, Script, Tag
 ├── schemas/                 # Pydantic validation per entity
-├── services/                # Business logic (incl. generation_service)
-├── routes/                  # prompts, generate, scripts, script_templates, tags, pages, settings
+├── services/                # prompt_catalog, generation, gemini_client, output_parser,
+│                            #   job_worker, uploads, job/script/tag services
+├── routes/                  # prompt_catalog, jobs, scripts, tags, pages, settings, health, pwa
 ├── templates/
-│   ├── pages/               # dashboard, prompts, scripts, script_detail, script_edit, generate, templates, tags, settings
-│   └── partials/            # HTMX fragments (_list, _row, _form, _status_badge, ...)
+│   ├── pages/               # dashboard, prompt_catalog, scripts, script_detail, script_edit, jobs, job_new, job_detail, tags, settings
+│   └── partials/            # HTMX fragments (jobs/_list, jobs/_status, scripts/_row, ...)
 └── static/                  # css/js/icons + service worker
 tests/{unit,integration,e2e}/
 scripts/seed.py              # sample OnlyGainsTV data
@@ -166,11 +171,10 @@ template). All DB access lives in services. All env access lives in `config.py`.
 
 | Area | Key routes |
 |------|-----------|
-| Dashboard | `GET /dashboard` (cards: prompts / scripts / ready / used + recent), `GET /dashboard/stats` (polled) |
-| Prompts | `GET /prompts`, `/prompts/search`, `POST /prompts`, `PUT /prompts/{id}`, `DELETE /prompts/{id}` |
-| Generate | `GET /generate` (prefill via `?prompt_id=` / `?template_id=`), `POST /generate` |
-| Scripts | `GET /scripts` (filters), `/scripts/{id}` (detail), `/scripts/{id}/edit`, `POST /scripts/{id}`, `/scripts/{id}/export`, `/duplicate`, `/variations`, `/status`, `DELETE /scripts/{id}` |
-| Templates | `GET /templates`, `/templates/search`, `POST /templates`, `PUT /templates/{id}`, `DELETE /templates/{id}` |
+| Dashboard | `GET /dashboard` (cards: queued / scripts / ready / used + recent), `GET /dashboard/stats` (polled) |
+| Prompts | `GET /prompts` (file catalog), `GET /prompts/{slug}` (preview) |
+| Jobs | `GET /jobs/new`, `POST /jobs`, `GET /jobs` (queue), `GET /jobs/{id}` (detail + live status), `GET /jobs/{id}/status`, `GET /jobs/{id}/export.zip` |
+| Scripts | `GET /scripts` (filters), `/scripts/{id}` (detail), `/scripts/{id}/edit`, `POST /scripts/{id}`, `/scripts/{id}/export`, `/duplicate`, `/status`, `DELETE /scripts/{id}` |
 | Tags | `GET /tags`, `POST /tags`, `DELETE /tags/{id}` |
 
 ---
@@ -187,6 +191,7 @@ by [app/config.py](app/config.py).
 | `DEBUG` | Verbose logging + interactive tracebacks |
 | `SECRET_KEY` | Signs the session cookie (used only for flash messages) |
 | `DATABASE_URL` | `sqlite:///./data/app.db` or a Postgres URL |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini auth + model for the generator (blank = generation disabled) |
 | `FEATURE_DARK_MODE`, `FEATURE_DASHBOARD` | Feature flags |
 
 ---
@@ -204,11 +209,12 @@ make test-all
 make check
 ```
 
-- **Unit** — services in isolation against a temp DB (prompt/script/generation).
-- **Integration** — routes via FastAPI's `TestClient`, asserting on rendered
-  HTML + HTMX headers (prompts, scripts, generate, templates, tags, dashboard).
-- **e2e** — a real browser drives a live server: dashboard, create-prompt modal,
-  the generate flow, and the script library.
+- **Unit** — services in isolation against a temp DB (prompt catalog, generation,
+  output parsing, scripts, uploads, run export). Gemini is mocked.
+- **Integration** — routes via FastAPI's `TestClient`, asserting on rendered HTML
+  + HTMX headers (dashboard, prompt catalog, jobs, scripts, tags).
+- **e2e** — a real browser drives a live server: dashboard, prompt catalog, the
+  submit-a-job flow, a completed job's split scripts, and the script library.
 
 ---
 

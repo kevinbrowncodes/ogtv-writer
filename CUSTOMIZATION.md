@@ -17,8 +17,8 @@ config → service → route → template
 
 - **config** ([app/config.py](app/config.py)) — the only place env vars are read.
 - **domain** ([app/domain.py](app/domain.py)) — the controlled vocabulary
-  (target models, output formats, statuses, tag kinds) and their display labels.
-  A new model or format is a one-line change here that the whole app picks up.
+  (script + job statuses, tag kinds) and their display labels. The target model
+  and output format now live inside each prompt file, not here.
 - **services** — the only place that talks to the DB for an entity.
 - **routes** — thin: parse input → call a service → render a template.
 - **templates** — `pages/` extend `shell.html`; `partials/` are HTMX fragments.
@@ -40,33 +40,35 @@ After editing templates/CSS, rebuild: `make css` (or `make css-watch` in dev).
 
 ## Tuning the generator
 
-[app/services/generation_service.py](app/services/generation_service.py) is the
-heart of the Generate workspace. Everything is data-driven:
+The generator calls **Google Gemini**. The pieces:
 
-- **`VARIATION_LENSES`** — the camera/lighting/mood combos that make each
-  variation distinct. Add entries for more variety before they repeat.
-- **`MODEL_GUIDANCE`** — per-model prompt style tokens + an "avoid" list. Tune
-  these to match how Veo / Wan actually behave for your channel.
-- **`FORMAT_TECH`** and the `_FORMAT_BUILDERS` (`_short_form`, `_cinematic`,
-  `_montage`, `_narrated`, `_shot_list`) — the structure for each output format.
+- **Prompts** — the briefs live as `.md` files in `app/static/prompts/`. The
+  prompt file *is* the spec (role, task, constraints, output shape). Add or edit a
+  prompt by dropping a file there; use `{{COUNT}}` where you want a per-job count
+  injected.
+- **[app/services/generation_service.py](app/services/generation_service.py)** —
+  `assemble_prompt()` builds the final prompt (count substitution + addendum + the
+  output contract) and `run_job()` drives a single job. The output contract (the
+  `<<<SCRIPT n>>>` / `<<<TITLES>>>` / `<<<SUMMARY>>>` markers) lives here; the
+  matching parser is [app/services/output_parser.py](app/services/output_parser.py).
+- **[app/services/gemini_client.py](app/services/gemini_client.py)** — the only
+  place that touches the SDK.
+- **[app/services/job_worker.py](app/services/job_worker.py)** — the in-process
+  worker that drains the queue.
 
-### Plugging in a real LLM
+### Using a different model or provider
 
-Keep `create_scripts()` as the seam. Swap the body of `build_script_body()` for
-a Claude/OpenAI call:
-
-1. Add the key in [app/config.py](app/config.py) (`anthropic_api_key: str = ""`)
-   and `.env`, then add the SDK to `pyproject.toml` dependencies.
-2. In `build_script_body()`, build your messages from `subject`, `target_model`,
-   `output_format`, and the per-variation `lens`, and return the model's
-   markdown. The template, routes, library, and export are unaffected.
+Set `GEMINI_MODEL` in `.env` to switch Gemini models. To use a different provider
+entirely, swap the body of `gemini_client.generate()` for your SDK call (and add
+its key in [app/config.py](app/config.py) + `.env`). Routes, the worker, parsing,
+the library, and export are all unaffected.
 
 ---
 
 ## Add a new entity (the five-file recipe)
 
-The existing entities (`Prompt`, `Script`, `ScriptTemplate`, `Tag`) are your
-blueprints. For an entity `Thing`:
+The existing entities (`Job`, `Script`, `Tag`) are your blueprints. For an entity
+`Thing`:
 
 | File | Purpose |
 |------|---------|
@@ -80,8 +82,8 @@ Then:
 - include the router in `app/main._register_routers()` (`>>> INCLUDE ... <<<`),
 - add a nav item in `app/templates/partials/_sidebar.html` (`>>> ADD NAV ... <<<`).
 
-**Closest blueprints:** copy `Prompt` for a modal-based CRUD; copy `Script` for a
-list + detail/edit page with extra actions.
+**Closest blueprints:** copy `Tag` for lightweight inline CRUD; copy `Script` for
+a list + detail/edit page with extra actions.
 
 ---
 
@@ -130,9 +132,9 @@ test-only). It currently runs `create_all` on startup for dev convenience.
 ```
 [ ] Set APP_NAME / BRAND_NAME / SECRET_KEY in .env
 [ ] Tuned theme colors + icon (input.css, icon.svg) and ran `make css`
-[ ] Tuned the generator (lenses / model guidance / format builders)
-[ ] (Optional) wired a real LLM into generation_service
-[ ] Updated scripts/seed.py for your real prompts/templates
+[ ] Set GEMINI_API_KEY in .env (free key at aistudio.google.com)
+[ ] Added your prompt files to app/static/prompts/
+[ ] Updated scripts/seed.py for your real sample data
 [ ] Added any new entities via the five-file recipe
 [ ] Chose SQLite vs Postgres; set up migrations if needed
 [ ] `make check` passes (lint + types + tests)

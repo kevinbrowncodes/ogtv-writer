@@ -22,10 +22,10 @@ def test_library_page_renders(client):
 
 
 def test_search_and_filter_fragment(client, db):
-    _make(db, title="Sunrise", target_model="veo", status="ready")
-    _make(db, title="Deadlift", target_model="wan", status="draft")
+    _make(db, title="Sunrise", status="ready")
+    _make(db, title="Deadlift", status="draft")
 
-    resp = client.get("/scripts/search", params={"model": "veo"}, headers=HX)
+    resp = client.get("/scripts/search", params={"status": "ready"}, headers=HX)
     assert resp.status_code == 200
     assert "Sunrise" in resp.text
     assert "Deadlift" not in resp.text
@@ -65,11 +65,8 @@ def test_update_persists_and_redirects(client, db):
             "title": "Renamed",
             "body": "new body",
             "status": "ready",
-            "target_model": "wan",
-            "output_format": "montage",
             "tags": "gym",
             "notes": "note",
-            "prompt_source": "src",
         },
         follow_redirects=False,
     )
@@ -78,7 +75,7 @@ def test_update_persists_and_redirects(client, db):
     db.expunge_all()
     refreshed = script_service.get_script(db, script.id)
     assert refreshed.title == "Renamed"
-    assert refreshed.target_model == "wan"
+    assert refreshed.status == "ready"
 
 
 def test_export_returns_markdown_download(client, db):

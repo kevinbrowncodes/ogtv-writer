@@ -47,15 +47,6 @@
       {% endfor %}
     </select>
 
-    <select name="model" class="input"
-      hx-get="/scripts/search" hx-trigger="change"
-      hx-target="#script-list" hx-swap="outerHTML" hx-include="#script-filters">
-      <option value="" {% if not filters.model %}selected{% endif %}>All models</option>
-      {% for value, label in MODEL_LABELS.items() %}
-        <option value="{{ value }}" {% if filters.model == value %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-
     <input
       type="search" name="tag" value="{{ filters.tag }}" placeholder="Filter by tag / theme…"
       class="input" autocomplete="off"

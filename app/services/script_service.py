@@ -21,20 +21,17 @@ def list_scripts(
     *,
     search: str | None = None,
     status: str | None = None,
-    target_model: str | None = None,
     tag: str | None = None,
     limit: int = 200,
     offset: int = 0,
 ) -> list[Script]:
-    """Return scripts, newest first, filtered by search/status/model/tag."""
+    """Return scripts, newest first, filtered by search/status/tag."""
     stmt = select(Script).order_by(Script.created_at.desc())
     if search:
         needle = f"%{search.strip()}%"
         stmt = stmt.where(or_(Script.title.ilike(needle), Script.body.ilike(needle)))
     if status:
         stmt = stmt.where(Script.status == status)
-    if target_model:
-        stmt = stmt.where(Script.target_model == target_model)
     if tag:
         stmt = stmt.where(Script.tags.ilike(f"%{tag.strip()}%"))
     stmt = stmt.limit(limit).offset(offset)
@@ -106,9 +103,7 @@ def duplicate_script(db: Session, script: Script) -> Script:
         title=f"{script.title} (copy)",
         body=script.body,
         status="draft",
-        target_model=script.target_model,
-        output_format=script.output_format,
-        prompt_source=script.prompt_source,
+        source_prompt=script.source_prompt,
         tags=script.tags,
         notes=script.notes,
     )

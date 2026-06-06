@@ -15,7 +15,7 @@ def test_dashboard_renders_shell_and_stats(client):
     assert "Dashboard" in resp.text
     assert 'id="stat-cards"' in resp.text  # the polling widget is present
     # OGTV stat labels.
-    assert "Prompts" in resp.text
+    assert "Queued" in resp.text
     assert "Scripts" in resp.text
 
 

@@ -35,10 +35,7 @@
         <li class="flex items-center justify-between gap-3 px-5 py-3">
           <div class="min-w-0">
             <a href="/scripts/{{ script.id }}" class="truncate font-medium hover:text-brand">{{ script.title }}</a>
-            <p class="truncate text-xs text-muted">
-              {{ MODEL_LABELS.get(script.target_model, script.target_model) }}
-              · {{ FORMAT_LABELS.get(script.output_format, script.output_format) }}
-            </p>
+            <p class="truncate text-xs text-muted">{{ script.source_prompt or "Manual" }}</p>
           </div>
           {% with status = script.status %}{% include "partials/scripts/_status_badge.html" %}{% endwith %}
         </li>
@@ -67,7 +64,7 @@
           <span>Edit, mark <span class="font-medium text-brand">ready</span>, then copy/export to Veo or Wan.</span>
         </li>
       </ol>
-      <a href="/templates" class="mt-5 block text-sm text-brand hover:underline">→ Manage reusable templates</a>
+      <a href="/jobs" class="mt-5 block text-sm text-brand hover:underline">→ View the job queue</a>
       <a href="/tags" class="mt-2 block text-sm text-brand hover:underline">→ Manage tags</a>
     </section>
   </div>

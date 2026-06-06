@@ -26,11 +26,6 @@ class Script(Base, TimestampMixin):
     body: Mapped[str] = mapped_column(Text, default="")
 
     status: Mapped[str] = mapped_column(String(20), default="draft", index=True)
-    target_model: Mapped[str] = mapped_column(String(20), default="generic", index=True)
-    output_format: Mapped[str] = mapped_column(String(30), default="short-form", index=True)
-
-    # Where this came from: the source prompt text (or a short reference to it).
-    prompt_source: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[str] = mapped_column(String(300), default="", index=True)
     notes: Mapped[str] = mapped_column(Text, default="")
 
@@ -43,4 +38,4 @@ class Script(Base, TimestampMixin):
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
-        return f"<Script id={self.id} title={self.title!r} model={self.target_model} status={self.status}>"
+        return f"<Script id={self.id} title={self.title!r} status={self.status}>"

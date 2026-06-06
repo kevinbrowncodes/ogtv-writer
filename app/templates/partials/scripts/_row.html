@@ -12,8 +12,7 @@
       {% endfor %}
     </div>
   </td>
-  <td class="hidden px-5 py-3 text-muted md:table-cell">{{ MODEL_LABELS.get(script.target_model, script.target_model) }}</td>
-  <td class="hidden px-5 py-3 text-muted md:table-cell">{{ FORMAT_LABELS.get(script.output_format, script.output_format) }}</td>
+  <td class="hidden px-5 py-3 text-muted md:table-cell">{{ script.source_prompt or "—" }}</td>
   <td class="px-5 py-3">
     <select
       name="status" aria-label="Status"

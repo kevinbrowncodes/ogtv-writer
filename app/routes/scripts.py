@@ -1,9 +1,8 @@
 """Script library + detail.
 
-The library page shows HTMX live-search and filters (status / model / tag) plus
-inline status changes and delete. The detail page is where a single script is
-viewed, edited, copied, exported as markdown, duplicated, and spun into more
-variations.
+The library page shows HTMX live-search and filters (status / tag) plus inline
+status changes and delete. The detail page is where a single script is viewed,
+edited, copied, exported as markdown, and duplicated.
 """
 
 from __future__ import annotations
@@ -33,8 +32,8 @@ def _get_or_404(db: DbSession, script_id: int) -> Script:
     return script
 
 
-def _filters(q: str, status: str, model: str, tag: str) -> dict:
-    return {"q": q, "status": status, "model": model, "tag": tag}
+def _filters(q: str, status: str, tag: str) -> dict:
+    return {"q": q, "status": status, "tag": tag}
 
 
 # --- Library -----------------------------------------------------------------
@@ -44,16 +43,15 @@ def scripts_page(
     db: DbSession,
     q: str = "",
     status: str = "",
-    model: str = "",
     tag: str = "",
 ) -> HTMLResponse:
     scripts = script_service.list_scripts(
-        db, search=q or None, status=status or None, target_model=model or None, tag=tag or None
+        db, search=q or None, status=status or None, tag=tag or None
     )
     return templates.TemplateResponse(
         request,
         "pages/scripts.html",
-        {"scripts": scripts, "filters": _filters(q, status, model, tag)},
+        {"scripts": scripts, "filters": _filters(q, status, tag)},
     )
 
 
@@ -63,11 +61,10 @@ def scripts_search(
     db: DbSession,
     q: str = "",
     status: str = "",
-    model: str = "",
     tag: str = "",
 ) -> HTMLResponse:
     scripts = script_service.list_scripts(
-        db, search=q or None, status=status or None, target_model=model or None, tag=tag or None
+        db, search=q or None, status=status or None, tag=tag or None
     )
     return templates.TemplateResponse(
         request, "partials/scripts/_list.html", {"scripts": scripts, "oob": False}
@@ -139,33 +136,24 @@ def scripts_update(
     title: Annotated[str, Form()] = "",
     body: Annotated[str, Form()] = "",
     status: Annotated[str, Form()] = "draft",
-    target_model: Annotated[str, Form()] = "generic",
-    output_format: Annotated[str, Form()] = "short-form",
     tags: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
-    prompt_source: Annotated[str, Form()] = "",
 ) -> Response:
     script = _get_or_404(db, script_id)
     values = {
         "title": title,
         "body": body,
         "status": status,
-        "target_model": target_model,
-        "output_format": output_format,
         "tags": tags,
         "notes": notes,
-        "prompt_source": prompt_source,
     }
     try:
         data = ScriptUpdate(
             title=title.strip(),
             body=body,
             status=status,
-            target_model=target_model,
-            output_format=output_format,
             tags=tags.strip(),
             notes=notes,
-            prompt_source=prompt_source,
         )
     except ValidationError as exc:
         return templates.TemplateResponse(

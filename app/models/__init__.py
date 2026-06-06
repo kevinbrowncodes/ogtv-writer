@@ -6,9 +6,7 @@ imports below.
 """
 
 from app.models.job import Job
-from app.models.prompt import Prompt
 from app.models.script import Script
-from app.models.script_template import ScriptTemplate
 from app.models.tag import Tag
 
-__all__ = ["Job", "Prompt", "Script", "ScriptTemplate", "Tag"]
+__all__ = ["Job", "Script", "Tag"]

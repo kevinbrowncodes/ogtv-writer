@@ -57,16 +57,12 @@ templates.env.auto_reload = get_settings().is_development
 templates.env.globals["app_name"] = get_settings().app_name
 
 # Domain vocabulary → labels, so templates can render friendly names for the
-# controlled values stored on prompts/scripts/templates/tags.
+# controlled values stored on scripts, jobs, and tags.
 from app import domain  # noqa: E402  (after templates is defined; avoids a cycle)
 
 templates.env.globals.update(
     {
-        "MODEL_LABELS": domain.MODEL_LABELS,
-        "FORMAT_LABELS": domain.FORMAT_LABELS,
         "SCRIPT_STATUS_LABELS": domain.SCRIPT_STATUS_LABELS,
-        "PROMPT_STATUS_LABELS": domain.PROMPT_STATUS_LABELS,
-        "TEMPLATE_CATEGORY_LABELS": domain.TEMPLATE_CATEGORY_LABELS,
         "TAG_KIND_LABELS": domain.TAG_KIND_LABELS,
         "JOB_STATUS_LABELS": domain.JOB_STATUS_LABELS,
         "parse_tags": domain.parse_tags,

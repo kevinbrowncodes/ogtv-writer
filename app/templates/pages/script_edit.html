@@ -40,34 +40,12 @@
           {% endfor %}
         </select>
 
-        {% set cur_model = v.get('target_model', script.target_model) %}
-        <label class="label mt-4" for="target_model">Target model</label>
-        <select id="target_model" name="target_model" class="input">
-          {% for value, label in MODEL_LABELS.items() %}
-            <option value="{{ value }}" {% if cur_model == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-
-        {% set cur_format = v.get('output_format', script.output_format) %}
-        <label class="label mt-4" for="output_format">Output format</label>
-        <select id="output_format" name="output_format" class="input">
-          {% for value, label in FORMAT_LABELS.items() %}
-            <option value="{{ value }}" {% if cur_format == value %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-
         <label class="label mt-4" for="tags">Tags</label>
         <input id="tags" name="tags" class="input" value="{{ v.get('tags', script.tags) }}" placeholder="gym, veo, cinematic" />
         <p class="mt-1 text-xs text-muted">Comma-separated.</p>
 
         <label class="label mt-4" for="notes">Notes</label>
         <textarea id="notes" name="notes" rows="3" class="input">{{ v.get('notes', script.notes) }}</textarea>
-      </section>
-
-      <section class="card p-5">
-        <label class="label" for="prompt_source">Prompt source</label>
-        <textarea id="prompt_source" name="prompt_source" rows="5" class="input font-mono text-xs">{{ v.get('prompt_source', script.prompt_source) }}</textarea>
-        <p class="mt-1 text-xs text-muted">The source prompt this script came from.</p>
       </section>
 
       <div class="flex gap-2">

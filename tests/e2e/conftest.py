@@ -37,22 +37,15 @@ def live_server() -> Iterator[str]:
     from app.database import Base, SessionLocal, engine
     from app.main import app
     from app.models.job import Job
-    from app.schemas.prompt import PromptCreate
     from app.schemas.script import ScriptCreate
-    from app.services import prompt_service, script_service
+    from app.services import script_service
 
     # Fresh schema + seed (once for the whole session).
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
-        prompt_service.create_prompt(
-            db, PromptCreate(title="Seeded prompt", body="# Scene\nstadium stairs at sunrise")
-        )
         script_service.create_script(
-            db,
-            ScriptCreate(
-                title="Seeded script", body="# Seeded\nbody", status="ready", target_model="veo"
-            ),
+            db, ScriptCreate(title="Seeded script", body="# Seeded\nbody", status="ready")
         )
         # A completed job with split scripts, for the results view (worker is off under tests).
         done_job = Job(

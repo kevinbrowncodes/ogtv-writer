@@ -1,6 +1,6 @@
 # STORY_006 — Retire the old model
 
-> Epic: EPIC_001 · Status: Not started
+> Epic: EPIC_001 · Status: Done
 
 **As** the OnlyGainsTV operator, **I want** the leftover pieces of the old starter app
 removed, **so that** the codebase only reflects how OGTV Writer actually works now —
@@ -13,18 +13,18 @@ vocab**, and brings docs/seed/nav in line.
 
 ## Acceptance Criteria
 
-- [ ] The `Prompt` DB inbox (model, schema, service, router, templates) and the
+- [x] The `Prompt` DB inbox (model, schema, service, router, templates) and the
       `ScriptTemplate` entity (model, schema, service, router, templates) are removed.
-- [ ] The `target_model` / `output_format` controlled vocab and the `1·3·5·10`
+- [x] The `target_model` / `output_format` controlled vocab and the `1·3·5·10`
       `GENERATION_COUNTS` are removed from `app/domain.py`, along with the now-unused
       `Script` columns and any template/form fields that referenced them.
-- [ ] No **dead routes** remain (old paths 404) and **no dead nav links** point at removed pages.
-- [ ] **Remaining pages still work:** dashboard, prompt catalog, new-job/queue/job-detail,
+- [x] No **dead routes** remain (old paths 404) and **no dead nav links** point at removed pages.
+- [x] **Remaining pages still work:** dashboard, prompt catalog, new-job/queue/job-detail,
       script library/detail/edit, and tags all return 200.
-- [ ] `scripts/seed.py` seeds only what still exists (drop prompt/template/old-script seeding).
-- [ ] `README.md` and `CUSTOMIZATION.md` reflect the new entity set and flows (no `Prompt`
+- [x] `scripts/seed.py` seeds only what still exists (drop prompt/template/old-script seeding).
+- [x] `README.md` and `CUSTOMIZATION.md` reflect the new entity set and flows (no `Prompt`
       inbox, no `ScriptTemplate`, no `output_format`/`target_model`, no deterministic generator).
-- [ ] `make check` (`ruff` + `mypy` + tests) and `make test-e2e` are green.
+- [x] `make check` (`ruff` + `mypy` + tests) and `make test-e2e` are green.
 
 ## Technical Notes
 

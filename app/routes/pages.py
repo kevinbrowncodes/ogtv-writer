@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.config import get_settings
 from app.dependencies import DbSession
-from app.services import prompt_service, script_service
+from app.services import job_service, script_service
 from app.templating import templates
 
 router = APIRouter(tags=["pages"])
@@ -27,9 +27,9 @@ def _build_stats(db: DbSession) -> list[dict]:
     """Assemble the dashboard summary cards for the OGTV Writer workflow."""
     return [
         {
-            "label": "Prompts",
-            "value": prompt_service.count_prompts(db),
-            "hint": "Ideas in the inbox",
+            "label": "Queued",
+            "value": job_service.count_jobs(db, status="queued"),
+            "hint": "Jobs waiting to run",
         },
         {
             "label": "Scripts",

@@ -19,25 +19,19 @@ def _make_job(db):
 
 
 def test_create_and_get_script(db):
-    script = script_service.create_script(
-        db, ScriptCreate(title="Hero", target_model="veo", output_format="cinematic")
-    )
+    script = script_service.create_script(db, ScriptCreate(title="Hero"))
     assert script.id is not None
     assert script.status == "draft"
     assert script.used_at is None
 
 
-def test_filter_by_status_model_and_tag(db):
-    script_service.create_script(
-        db, ScriptCreate(title="A", status="ready", target_model="veo", tags="gym, sunrise")
-    )
-    script_service.create_script(
-        db, ScriptCreate(title="B", status="draft", target_model="wan", tags="hype")
-    )
+def test_filter_by_status_and_tag(db):
+    script_service.create_script(db, ScriptCreate(title="A", status="ready", tags="gym, sunrise"))
+    script_service.create_script(db, ScriptCreate(title="B", status="draft", tags="hype"))
 
     assert len(script_service.list_scripts(db, status="ready")) == 1
-    assert len(script_service.list_scripts(db, target_model="wan")) == 1
     assert len(script_service.list_scripts(db, tag="sunrise")) == 1
+    assert len(script_service.list_scripts(db, tag="hype")) == 1
 
 
 def test_search_matches_body(db):
