@@ -26,7 +26,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.logging_config import configure_logging
-from app.routes import generate, health, pages, prompts, pwa, scripts, tags
+from app.routes import generate, health, pages, prompt_catalog, pwa, scripts, tags
 from app.routes import script_templates as script_templates_routes
 from app.routes import settings as settings_routes
 from app.templating import templates
@@ -88,7 +88,9 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(health.router)
     app.include_router(pwa.router)
     app.include_router(pages.router)
-    app.include_router(prompts.router)
+    # The prompt "inbox" (DB) is replaced by a file-based catalog (STORY_001). The old
+    # app/routes/prompts.py + Prompt model/service/templates are removed in STORY_006.
+    app.include_router(prompt_catalog.router)
     app.include_router(generate.router)
     app.include_router(scripts.router)
     app.include_router(script_templates_routes.router)

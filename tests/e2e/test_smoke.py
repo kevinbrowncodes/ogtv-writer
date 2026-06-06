@@ -1,6 +1,6 @@
 """End-to-end smoke tests covering the core OGTV Writer journeys.
 
-Covered: dashboard render, creating a prompt via the HTMX modal, generating
+Covered: dashboard render, browsing the file-based prompt catalog, generating
 scripts from the workspace, and the script library.
 """
 
@@ -19,19 +19,16 @@ def test_dashboard_renders(page: Page, live_server: str):
     expect(page.locator("#stat-cards")).to_be_visible()
 
 
-def test_create_prompt_via_htmx_modal(page: Page, live_server: str):
+def test_browse_prompt_catalog(page: Page, live_server: str):
     page.goto(f"{live_server}/prompts")
 
-    page.get_by_role("button", name="New prompt").click()
-    expect(page.locator("#modal")).to_contain_text("New prompt")
+    expect(page.get_by_role("heading", name="Prompt library")).to_be_visible()
+    # The seeded prompt files from app/static/prompts/ are listed.
+    expect(page.locator("#prompt-list")).to_contain_text("video-review-prompt.md")
 
-    page.fill("#title", "Playwright prompt")
-    page.fill("#body", "# Scene\na test prompt")
-    page.get_by_role("button", name="Save prompt").click()
-
-    # The modal closes (out-of-band swap) and the list updates.
-    expect(page.locator("#prompt-list")).to_contain_text("Playwright prompt")
-    expect(page.locator("#modal")).to_be_empty()
+    # Clicking a prompt loads its full text into the preview panel (HTMX).
+    page.locator('a[href="/prompts/video-review-prompt"]').click()
+    expect(page.locator("#prompt-preview")).to_contain_text("Viral Video Strategist")
 
 
 def test_generate_scripts_flow(page: Page, live_server: str):

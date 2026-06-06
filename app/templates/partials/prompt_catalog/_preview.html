@@ -1,0 +1,16 @@
+{#
+  Full-text preview of a single prompt. Swapped into #prompt-preview by HTMX, and
+  also embedded by pages/prompt_preview.html for the no-JS full-page view.
+#}
+<div class="card overflow-hidden">
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
+    <div class="min-w-0">
+      <h2 class="truncate text-sm font-semibold">{{ prompt.title }}</h2>
+      <p class="truncate text-xs text-muted">{{ prompt.filename }}</p>
+    </div>
+    {% if prompt.has_count %}
+      <span class="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">Uses {{ "{{COUNT}}" }}</span>
+    {% endif %}
+  </div>
+  <pre class="max-h-[70vh] overflow-auto whitespace-pre-wrap px-5 py-4 text-xs leading-relaxed text-content">{{ prompt.body }}</pre>
+</div>

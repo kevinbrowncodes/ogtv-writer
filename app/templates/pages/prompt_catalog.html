@@ -1,0 +1,38 @@
+{% extends "shell.html" %}
+{% block page_title %}Prompts{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Prompt library</h1>
+    <p class="text-sm text-muted">
+      Your reusable briefs from <code class="rounded bg-surface-2 px-1">app/static/prompts/</code>.
+      Drop a <code class="rounded bg-surface-2 px-1">.md</code> file in that folder to add one.
+    </p>
+  </div>
+
+  {% if prompts %}
+  <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+    {# Left: the catalog list #}
+    <div id="prompt-list" class="card divide-y divide-border overflow-hidden">
+      {% for prompt in prompts %}
+        {% include "partials/prompt_catalog/_card.html" %}
+      {% endfor %}
+    </div>
+
+    {# Right: preview panel — HTMX swaps a prompt's body in here #}
+    <div id="prompt-preview">
+      {% include "partials/prompt_catalog/_empty_preview.html" %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card px-5 py-16 text-center">
+    <p class="text-sm font-medium">No prompts yet</p>
+    <p class="mx-auto mt-1 max-w-md text-sm text-muted">
+      Add a brief by dropping a <code class="rounded bg-surface-2 px-1">.md</code> file into
+      <code class="rounded bg-surface-2 px-1">app/static/prompts/</code>. It’ll show up here automatically.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

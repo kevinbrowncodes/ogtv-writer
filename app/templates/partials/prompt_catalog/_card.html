@@ -1,0 +1,20 @@
+{#
+  One prompt in the catalog list. Clicking loads its preview into #prompt-preview
+  via HTMX; the href is the no-JS fallback to the full preview page.
+#}
+<a
+  href="/prompts/{{ prompt.slug }}"
+  hx-get="/prompts/{{ prompt.slug }}"
+  hx-target="#prompt-preview"
+  hx-swap="innerHTML"
+  hx-push-url="true"
+  class="flex items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-surface-2"
+>
+  <span class="min-w-0">
+    <span class="block truncate font-medium">{{ prompt.title }}</span>
+    <span class="block truncate text-xs text-muted">{{ prompt.filename }}</span>
+  </span>
+  {% if prompt.has_count %}
+    <span class="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">Count</span>
+  {% endif %}
+</a>
