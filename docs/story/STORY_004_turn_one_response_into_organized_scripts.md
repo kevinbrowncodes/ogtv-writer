@@ -1,6 +1,6 @@
 # STORY_004 — Turn one response into organized scripts
 
-> Epic: EPIC_001 · Status: Not started
+> Epic: EPIC_001 · Status: Done
 
 **As** the OnlyGainsTV operator, **I want** a finished job's response broken into
 individual scripts (plus its titles and summary), **so that** each script is its own
@@ -13,17 +13,17 @@ materializes the pieces: N `Script` rows tied to the job, plus the job's `titles
 
 ## Acceptance Criteria
 
-- [ ] When a job finishes, its raw response is parsed into the **individual scripts** the
+- [x] When a job finishes, its raw response is parsed into the **individual scripts** the
       prompt produced (1 for the Veo reviewer, N for the Wan arc), each saved as its own
       `Script` linked to the job, in order.
-- [ ] If the prompt produced a **`titles`** block and/or a **summary**, both are stored on
+- [x] If the prompt produced a **`titles`** block and/or a **summary**, both are stored on
       the job and shown on its detail page.
-- [ ] The **job-detail page** shows the ordered scripts, the titles, and the summary; the
+- [x] The **job-detail page** shows the ordered scripts, the titles, and the summary; the
       generated scripts also appear in the **Script library** (`/scripts`).
-- [ ] Parsing is **robust:** a single-script response yields exactly one script (no empty
+- [x] Parsing is **robust:** a single-script response yields exactly one script (no empty
       titles/summary); a malformed/partial response does **not** crash — it stores what it
       can and the job is still marked `done` (with a note when the parsed count ≠ the requested count).
-- [ ] Each generated `Script` records which **prompt** it came from and its **order index**.
+- [x] Each generated `Script` records which **prompt** it came from and its **order index**.
 
 ## Technical Notes
 

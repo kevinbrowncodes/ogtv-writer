@@ -17,7 +17,7 @@ from app.dependencies import DbSession
 from app.models.job import Job
 from app.routes.common import field_errors
 from app.schemas.job import JobCreate
-from app.services import job_service, prompt_catalog
+from app.services import job_service, prompt_catalog, script_service
 from app.services.uploads import UploadError, save_upload
 from app.templating import flash, templates
 
@@ -81,16 +81,22 @@ def jobs_list(request: Request, db: DbSession) -> HTMLResponse:
 
 @router.get("/jobs/{job_id}", response_class=HTMLResponse)
 def job_detail(request: Request, db: DbSession, job_id: int) -> HTMLResponse:
+    job = _get_or_404(db, job_id)
     return templates.TemplateResponse(
-        request, "pages/job_detail.html", {"job": _get_or_404(db, job_id)}
+        request,
+        "pages/job_detail.html",
+        {"job": job, "scripts": script_service.list_for_job(db, job.id)},
     )
 
 
 @router.get("/jobs/{job_id}/status", response_class=HTMLResponse)
 def job_status(request: Request, db: DbSession, job_id: int) -> HTMLResponse:
     """HTMX partial: the live status block on the detail page (polls until terminal)."""
+    job = _get_or_404(db, job_id)
     return templates.TemplateResponse(
-        request, "partials/jobs/_status.html", {"job": _get_or_404(db, job_id)}
+        request,
+        "partials/jobs/_status.html",
+        {"job": job, "scripts": script_service.list_for_job(db, job.id)},
     )
 
 

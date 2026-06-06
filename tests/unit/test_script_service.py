@@ -3,7 +3,19 @@
 from __future__ import annotations
 
 from app.schemas.script import ScriptCreate, ScriptUpdate
-from app.services import script_service
+from app.services import job_service, script_service
+
+
+def _make_job(db):
+    return job_service.create_job(
+        db,
+        prompt_slug="p",
+        prompt_filename="p.md",
+        addendum="",
+        count=None,
+        image_path="data/uploads/x.png",
+        image_filename="x.png",
+    )
 
 
 def test_create_and_get_script(db):
@@ -64,3 +76,24 @@ def test_status_breakdown(db):
 
     breakdown = script_service.status_breakdown(db)
     assert breakdown == {"draft": 1, "ready": 2}
+
+
+def test_create_generated_scripts_multiple(db):
+    job = _make_job(db)
+    created = script_service.create_generated_scripts(db, job, ["one", "two"], title_base="Scene")
+
+    assert [s.title for s in created] == ["Scene — 1", "Scene — 2"]
+    assert [s.order_index for s in created] == [1, 2]
+    assert all(s.job_id == job.id for s in created)
+    assert all(s.status == "draft" for s in created)
+    assert all(s.source_prompt == "p.md" for s in created)
+
+    listed = script_service.list_for_job(db, job.id)
+    assert [s.body for s in listed] == ["one", "two"]
+
+
+def test_create_generated_scripts_single_has_no_suffix(db):
+    job = _make_job(db)
+    (created,) = script_service.create_generated_scripts(db, job, ["solo"], title_base="Scene")
+    assert created.title == "Scene"
+    assert created.order_index == 1

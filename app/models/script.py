@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -33,6 +33,11 @@ class Script(Base, TimestampMixin):
     prompt_source: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[str] = mapped_column(String(300), default="", index=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+
+    # Generation provenance: a script produced by a job (STORY_004).
+    job_id: Mapped[int | None] = mapped_column(ForeignKey("jobs.id"), default=None, index=True)
+    order_index: Mapped[int] = mapped_column(default=0)
+    source_prompt: Mapped[str] = mapped_column(String(255), default="")
 
     # Set when the script is marked "used" in a video.
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

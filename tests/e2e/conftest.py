@@ -36,6 +36,7 @@ def live_server() -> Iterator[str]:
     """Start the app on a thread, seed data, and yield its base URL."""
     from app.database import Base, SessionLocal, engine
     from app.main import app
+    from app.models.job import Job
     from app.schemas.prompt import PromptCreate
     from app.schemas.script import ScriptCreate
     from app.services import prompt_service, script_service
@@ -52,6 +53,23 @@ def live_server() -> Iterator[str]:
             ScriptCreate(
                 title="Seeded script", body="# Seeded\nbody", status="ready", target_model="veo"
             ),
+        )
+        # A completed job with split scripts, for the results view (worker is off under tests).
+        done_job = Job(
+            prompt_slug="video-review-prompt",
+            prompt_filename="video-review-prompt.md",
+            status="done",
+            image_path="data/uploads/seed.png",
+            image_filename="seed.png",
+            result_raw="seeded raw response",
+            titles="Seed title 1\nSeed title 2",
+            summary="Seeded scene summary.",
+        )
+        db.add(done_job)
+        db.commit()
+        db.refresh(done_job)
+        script_service.create_generated_scripts(
+            db, done_job, ["Seeded script alpha", "Seeded script beta"], title_base="Seeded Job"
         )
 
     port = _free_port()

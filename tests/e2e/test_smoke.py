@@ -62,3 +62,11 @@ def test_submit_generation_job(page: Page, live_server: str):
     page.locator("#job-list a").first.click()
     expect(page.get_by_role("heading", name="Job #")).to_be_visible()
     expect(page.locator("#job-status")).to_contain_text("Queued")
+
+
+def test_completed_job_shows_split_scripts(page: Page, live_server: str):
+    page.goto(f"{live_server}/jobs")
+    # Open the seeded completed job (the only row marked Done).
+    page.locator("#job-list tr", has_text="Done").first.locator("a").click()
+    expect(page.locator("#job-status")).to_contain_text("Seeded script alpha")
+    expect(page.locator("#job-status")).to_contain_text("Seeded scene summary.")

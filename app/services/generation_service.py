@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models.job import Job
-from app.services import gemini_client, prompt_catalog
+from app.services import gemini_client, output_parser, prompt_catalog, script_service
 from app.services.uploads import PROJECT_ROOT
 
 log = logging.getLogger(__name__)
@@ -95,9 +95,17 @@ def run_job(db: Session, job: Job) -> None:
             api_key=settings.gemini_api_key,
         )
 
+        parsed = output_parser.parse_response(text)
         job.result_raw = text
+        job.titles = "\n".join(parsed.titles)
+        job.summary = parsed.summary
         job.status = "done"
         job.error = ""
+        script_service.create_generated_scripts(db, job, parsed.scripts, title_base=prompt.title)
+        if job.count and len(parsed.scripts) != job.count:
+            log.warning(
+                "Job %s: requested %s scripts, parsed %s", job.id, job.count, len(parsed.scripts)
+            )
     except Exception as exc:  # any failure marks the job failed, never crashes the worker
         log.exception("Job %s failed", job.id)
         job.status = "failed"

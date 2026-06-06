@@ -47,5 +47,9 @@ class Job(Base, TimestampMixin):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     result_raw: Mapped[str] = mapped_column(Text, default="")
 
+    # Parsed out of result_raw (STORY_004): a titles list (newline-joined) + a summary.
+    titles: Mapped[str] = mapped_column(Text, default="")
+    summary: Mapped[str] = mapped_column(Text, default="")
+
     def __repr__(self) -> str:  # pragma: no cover - debug helper
         return f"<Job id={self.id} prompt={self.prompt_slug!r} status={self.status}>"

@@ -1,6 +1,7 @@
 {#
   Live status block for the job detail page. Polls every 2s while queued/running,
-  then stops and reveals the raw result (or the error) once terminal.
+  then stops and shows the organized result (scripts + titles + summary) or the error.
+  Expects `job` and `scripts` (its generated scripts, in order).
 #}
 <div id="job-status"
   {% if job.status in ("queued", "running") %}hx-get="/jobs/{{ job.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
@@ -18,10 +19,49 @@
   {% endif %}
 
   {% if job.status == "done" %}
-  <div class="mt-4">
-    <h2 class="text-sm font-semibold">Raw response</h2>
-    <p class="mt-1 text-xs text-muted">Splitting this into individual scripts comes next (STORY_004).</p>
-    <pre class="mt-2 max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-4 font-mono text-xs text-content">{{ job.result_raw }}</pre>
-  </div>
+    {% if job.count and scripts | length != job.count %}
+    <p class="mt-3 rounded-lg bg-surface-2 px-3 py-2 text-xs text-muted">
+      Heads up: requested {{ job.count }} scripts, parsed {{ scripts | length }}.
+    </p>
+    {% endif %}
+
+    {# Scripts #}
+    <div class="mt-4 space-y-4">
+      {% for s in scripts %}
+      <div class="overflow-hidden rounded-lg border border-border">
+        <div class="flex items-center justify-between border-b border-border px-4 py-2">
+          <a href="/scripts/{{ s.id }}" class="text-sm font-medium hover:text-brand">{{ s.title }}</a>
+          <span class="text-xs text-muted">Script {{ s.order_index }}</span>
+        </div>
+        <pre class="max-h-64 overflow-auto whitespace-pre-wrap break-words px-4 py-3 font-mono text-xs text-content">{{ s.body }}</pre>
+      </div>
+      {% else %}
+      <p class="text-sm text-muted">No scripts were parsed from the response.</p>
+      {% endfor %}
+    </div>
+
+    {# Titles #}
+    {% if job.titles %}
+    <div class="mt-4">
+      <h2 class="text-sm font-semibold">Titles</h2>
+      <ul class="mt-2 space-y-1 text-sm text-content">
+        {% for t in job.titles.splitlines() %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {# Summary #}
+    {% if job.summary %}
+    <div class="mt-4">
+      <h2 class="text-sm font-semibold">Summary</h2>
+      <p class="mt-1 whitespace-pre-wrap text-sm text-content">{{ job.summary }}</p>
+    </div>
+    {% endif %}
+
+    {# Raw response (debugging) #}
+    <details class="mt-4">
+      <summary class="cursor-pointer text-xs text-muted">Raw response</summary>
+      <pre class="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-3 font-mono text-xs text-muted">{{ job.result_raw }}</pre>
+    </details>
   {% endif %}
 </div>

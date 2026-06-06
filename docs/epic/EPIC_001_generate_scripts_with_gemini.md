@@ -81,7 +81,7 @@ Implemented in numeric order — lowest-numbered ships first, one at a time.
 - [x] **STORY_001 — Browse your prompt library** — read `app/static/prompts/*.md`, list + preview in the UI, detect the `{{COUNT}}` placeholder. *(No API, no queue.)* ✅ Done.
 - [x] **STORY_002 — Submit a generation job** — pick a prompt, upload a first-frame image, add optional addendum + count; persist to a `jobs` queue (image under `data/`). *(Worker not running yet.)* ✅ Done.
 - [x] **STORY_003 — Generate with Gemini in the background** — config + multimodal Gemini call (mocked in tests) + an in-process worker that drains the queue and stores each job's raw result + status. **Removes the old deterministic generator.** ✅ Done.
-- [ ] **STORY_004 — Turn one response into organized scripts** — parse the reply into a Run: N individual scripts + `titles.txt` + summary.
+- [x] **STORY_004 — Turn one response into organized scripts** — parse the reply into a Run: N individual scripts + `titles.txt` + summary. ✅ Done.
 - [ ] **STORY_005 — Copy and export results** — per-script copy button + download the whole run as a `.zip`.
 - [ ] **STORY_006 — Retire the old model** — remove orphaned pieces (below) and clean up nav, seed data, README / CUSTOMIZATION.
 
