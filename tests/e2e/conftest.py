@@ -23,6 +23,8 @@ os.environ.setdefault("SECRET_KEY", "e2e-secret-key")
 # Blank the Gemini key so the live e2e server never calls the API (worker is off
 # under tests anyway); the model picker falls back to the default.
 os.environ["GEMINI_API_KEY"] = ""
+# A dedicated shoot root for e2e; the live_server fixture seeds one shoot into it.
+os.environ.setdefault("SOURCE_ROOT", "data/e2e_shoots")
 
 import pytest  # noqa: E402
 import uvicorn  # noqa: E402
@@ -37,11 +39,23 @@ def _free_port() -> int:
 @pytest.fixture(scope="session")
 def live_server() -> Iterator[str]:
     """Start the app on a thread, seed data, and yield its base URL."""
+    from pathlib import Path
+
+    from app.config import get_settings
     from app.database import Base, SessionLocal, engine
     from app.main import app
+    from app.services import prompt_catalog
+
+    # Use the fixed fixture prompts, not the user-editable app/static/prompts/.
+    prompt_catalog.PROMPTS_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "prompts"
     from app.models.job import Job
     from app.schemas.script import ScriptCreate
     from app.services import script_service
+
+    # Seed one shoot folder under SOURCE_ROOT so the folder picker has an entry.
+    shoot = Path(get_settings().source_root) / "only-gains-tv" / "test-shoot"
+    shoot.mkdir(parents=True, exist_ok=True)
+    (shoot / "01.jpg").write_bytes(b"\x89PNG\r\n\x1a\nseed")
 
     # Fresh schema + seed (once for the whole session).
     Base.metadata.drop_all(bind=engine)

@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # verifies the DB is at head and refuses to start if it isn't.
     auto_migrate: bool = True
 
+    # Root holding shoot folders (data/logline/<channel>/<shoot>/01.jpg). Folder-based
+    # jobs read the frame from here and write the produced scripts back into the folder.
+    source_root: str = "data/logline"
+
     # --- Server ---------------------------------------------------------------
     host: str = "0.0.0.0"
     port: int = 8000

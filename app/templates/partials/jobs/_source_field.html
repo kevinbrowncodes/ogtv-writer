@@ -1,0 +1,28 @@
+{#
+  The image-source input — a shoot-folder picker (folder mode) or a file upload.
+  Swapped into #image-source-field by HTMX when the radio changes; also included on the
+  first render of the New-job form. Expects: image_source, shoots, source_root, values, errors.
+#}
+{% if image_source == "folder" %}
+  <label class="label" for="source_dir">Shoot folder</label>
+  {% if shoots %}
+  <select id="source_dir" name="source_dir" class="input">
+    <option value="">Select a shoot…</option>
+    {% for s in shoots %}
+      <option value="{{ s.rel_dir }}" {% if values and values.get('source_dir') == s.rel_dir %}selected{% endif %}>{{ s.channel }} / {{ s.name }} — {{ s.frame }}</option>
+    {% endfor %}
+  </select>
+  <p class="mt-1 text-xs text-muted">The script(s) will be written back into this folder.</p>
+  {% else %}
+  <p class="text-sm text-muted">
+    No shoot folders with an <code class="rounded bg-surface-2 px-1">01.*</code> frame under
+    <code class="rounded bg-surface-2 px-1">{{ source_root }}</code>.
+  </p>
+  {% endif %}
+  {% if errors and errors.source_dir %}<p class="field-error">{{ errors.source_dir }}</p>{% endif %}
+{% else %}
+  <label class="label" for="image">First-frame image</label>
+  <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/webp" class="input" />
+  <p class="mt-1 text-xs text-muted">JPG, PNG, or WebP — up to 10 MB.</p>
+  {% if errors and errors.image %}<p class="field-error">{{ errors.image }}</p>{% endif %}
+{% endif %}

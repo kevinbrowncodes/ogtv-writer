@@ -99,6 +99,37 @@ def test_run_job_uses_job_model(db, tmp_path, monkeypatch):
     assert captured["model"] == "gemini-2.5-pro"
 
 
+def test_run_job_writes_scripts_into_shoot_folder(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("SOURCE_ROOT", str(tmp_path))
+    get_settings.cache_clear()
+    shoot = tmp_path / "only-gains-tv" / "26-brown"
+    shoot.mkdir(parents=True)
+    (shoot / "01.jpg").write_bytes(PNG)
+    monkeypatch.setattr(
+        gemini_client, "generate", lambda **kwargs: "<<<SCRIPT 1>>>hello<<<END SCRIPT>>>"
+    )
+
+    job = job_service.create_job(
+        db,
+        prompt_slug="video-review-prompt",
+        prompt_filename="video-review-prompt.md",
+        addendum="",
+        count=None,
+        image_path=str(shoot / "01.jpg"),
+        image_filename="01.jpg",
+        source_dir="only-gains-tv/26-brown",
+    )
+    job.status = "running"
+    db.commit()
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "done"
+    assert (shoot / "script.txt").read_text() == "hello"
+    assert "script.txt" in job.output_files
+
+
 def test_run_job_marks_failed_on_client_error(db, tmp_path, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     get_settings.cache_clear()

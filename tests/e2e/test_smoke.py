@@ -6,15 +6,8 @@ scripts from the workspace, and the script library.
 
 from __future__ import annotations
 
-import base64
-
 import pytest
 from playwright.sync_api import Page, expect
-
-# A valid 1x1 PNG, used to drive the file-upload control.
-_PNG = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-)
 
 # Every test in this module is an e2e test (excluded from the default run).
 pytestmark = pytest.mark.e2e
@@ -52,14 +45,13 @@ def test_submit_generation_job(page: Page, live_server: str):
     expect(page.locator("#model")).to_contain_text("gemini-2.5-flash")
 
     page.select_option("#prompt_slug", "video-review-prompt")
-    page.set_input_files(
-        "#image", files=[{"name": "frame.png", "mimeType": "image/png", "buffer": _PNG}]
-    )
+    # Default image source is the shoot folder (one is seeded under SOURCE_ROOT).
+    page.select_option("#source_dir", "only-gains-tv/test-shoot")
     page.get_by_role("button", name="Queue job").click()
 
     # Lands back on the queue with the new job listed as Queued.
     page.wait_for_url("**/jobs")
-    expect(page.locator("#job-list")).to_contain_text("frame.png")
+    expect(page.locator("#job-list")).to_contain_text("video-review-prompt.md")
     expect(page.locator("#job-list")).to_contain_text("Queued")
 
     # Opening the job shows its detail page with the live status block.

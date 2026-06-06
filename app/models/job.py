@@ -37,9 +37,15 @@ class Job(Base, TimestampMixin):
     # Which Gemini model this job uses ("" = the configured default).
     model: Mapped[str] = mapped_column(String(60), default="")
 
-    # The uploaded first-frame image (repo-relative path under data/uploads/).
+    # The first-frame image: an uploaded copy under data/uploads/ (upload mode), or the
+    # absolute path of the 01.* frame inside a shoot folder (folder mode).
     image_path: Mapped[str] = mapped_column(String(500), default="")
     image_filename: Mapped[str] = mapped_column(String(255), default="")
+
+    # Folder mode (STORY_009): the shoot folder (relative to SOURCE_ROOT) that the frame
+    # came from and where outputs are written; output_files lists what was written.
+    source_dir: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    output_files: Mapped[str] = mapped_column(Text, default="", server_default="")
 
     # Lifecycle.
     status: Mapped[str] = mapped_column(String(20), default="queued", index=True)

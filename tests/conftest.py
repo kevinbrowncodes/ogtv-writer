@@ -20,6 +20,11 @@ os.environ.setdefault("DEBUG", "false")
 # Force-blank the Gemini key so tests NEVER make a live call, even though a real
 # key may live in .env. Tests that exercise generation set their own + mock the client.
 os.environ["GEMINI_API_KEY"] = ""
+# Point shoot discovery at a non-existent dir so /jobs/new is deterministic (no real
+# data/logline shoots leak in); folder tests monkeypatch SOURCE_ROOT to a tmp dir.
+os.environ["SOURCE_ROOT"] = "data/_test_shoots_none"
+
+from pathlib import Path  # noqa: E402
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -27,6 +32,11 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
+from app.services import prompt_catalog  # noqa: E402
+
+# Decouple the suite from the user-editable app/static/prompts/ folder — point the
+# catalog at fixed fixtures so renaming/editing real prompts never breaks tests.
+prompt_catalog.PROMPTS_DIR = Path(__file__).resolve().parent / "fixtures" / "prompts"
 
 
 @pytest.fixture(autouse=True)

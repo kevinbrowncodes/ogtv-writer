@@ -18,7 +18,7 @@ from app.dependencies import DbSession
 from app.models.job import Job
 from app.routes.common import field_errors
 from app.schemas.job import JobCreate
-from app.services import generation_service, job_service, prompt_catalog, script_service
+from app.services import generation_service, job_service, prompt_catalog, script_service, shoots
 from app.services.uploads import UploadError, save_upload
 from app.templating import flash, templates
 
@@ -48,6 +48,7 @@ def jobs_page(request: Request, db: DbSession) -> HTMLResponse:
 @router.get("/jobs/new", response_class=HTMLResponse)
 def job_new_page(request: Request, prompt: str = "") -> HTMLResponse:
     selected = prompt_catalog.get_prompt(prompt) if prompt else None
+    shoot_list = shoots.list_shoots()
     return templates.TemplateResponse(
         request,
         "pages/job_new.html",
@@ -56,7 +57,16 @@ def job_new_page(request: Request, prompt: str = "") -> HTMLResponse:
             "selected": selected,
             "models": generation_service.available_models(),
             "default_model": get_settings().gemini_model,
-            "values": {"prompt_slug": prompt, "addendum": "", "count": "", "model": ""},
+            "shoots": shoot_list,
+            "source_root": get_settings().source_root,
+            "image_source": "folder" if shoot_list else "upload",
+            "values": {
+                "prompt_slug": prompt,
+                "addendum": "",
+                "count": "",
+                "model": "",
+                "source_dir": "",
+            },
             "errors": {},
         },
     )
@@ -70,6 +80,22 @@ def job_count_field(request: Request, prompt_slug: str = "") -> HTMLResponse:
         request,
         "partials/jobs/_count_field.html",
         {"selected": selected, "values": {"count": ""}, "errors": {}},
+    )
+
+
+@router.get("/jobs/new/source-field", response_class=HTMLResponse)
+def job_source_field(request: Request, image_source: str = "upload") -> HTMLResponse:
+    """HTMX partial: the image-source input — a file upload or a shoot-folder picker."""
+    return templates.TemplateResponse(
+        request,
+        "partials/jobs/_source_field.html",
+        {
+            "image_source": image_source,
+            "shoots": shoots.list_shoots(),
+            "source_root": get_settings().source_root,
+            "values": {},
+            "errors": {},
+        },
     )
 
 
@@ -124,13 +150,22 @@ def jobs_create(
     addendum: Annotated[str, Form()] = "",
     count: Annotated[str, Form()] = "",
     model: Annotated[str, Form()] = "",
+    image_source: Annotated[str, Form()] = "upload",
+    source_dir: Annotated[str, Form()] = "",
     image: Annotated[UploadFile | None, File()] = None,
 ) -> Response:
     selected = prompt_catalog.get_prompt(prompt_slug) if prompt_slug else None
     models = generation_service.available_models()
     default_model = get_settings().gemini_model
     chosen_model = model if model in models else default_model
-    values = {"prompt_slug": prompt_slug, "addendum": addendum, "count": count, "model": model}
+    values = {
+        "prompt_slug": prompt_slug,
+        "addendum": addendum,
+        "count": count,
+        "model": model,
+        "image_source": image_source,
+        "source_dir": source_dir,
+    }
     errors: dict[str, str] = {}
 
     if selected is None:
@@ -152,13 +187,22 @@ def jobs_create(
             for field, message in field_errors(exc).items():
                 errors.setdefault(field, message)
 
-    # Only touch disk once the rest validates, so failures never orphan a file.
-    image_path = image_filename = ""
+    # Resolve the image source once the rest validates.
+    image_path = image_filename = resolved_source_dir = ""
     if not errors:
-        try:
-            image_path, image_filename = save_upload(image)
-        except UploadError as exc:
-            errors["image"] = str(exc)
+        if image_source == "folder":
+            shoot = shoots.resolve(source_dir)
+            if shoot is None:
+                errors["source_dir"] = "Pick a shoot folder that has an 01.* frame."
+            else:
+                image_path = shoots.frame_abspath(shoot)
+                image_filename = shoot.frame or ""
+                resolved_source_dir = shoot.rel_dir
+        else:
+            try:
+                image_path, image_filename = save_upload(image)
+            except UploadError as exc:
+                errors["image"] = str(exc)
 
     if errors:
         return templates.TemplateResponse(
@@ -169,6 +213,9 @@ def jobs_create(
                 "selected": selected,
                 "models": models,
                 "default_model": default_model,
+                "shoots": shoots.list_shoots(),
+                "source_root": get_settings().source_root,
+                "image_source": image_source,
                 "values": values,
                 "errors": errors,
             },
@@ -185,6 +232,7 @@ def jobs_create(
         image_path=image_path,
         image_filename=image_filename,
         model=chosen_model,
+        source_dir=resolved_source_dir,
     )
     flash(request, "Job queued.", "success")
     return RedirectResponse("/jobs", status_code=303)
