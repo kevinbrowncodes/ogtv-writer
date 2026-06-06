@@ -6,8 +6,15 @@ scripts from the workspace, and the script library.
 
 from __future__ import annotations
 
+import base64
+
 import pytest
 from playwright.sync_api import Page, expect
+
+# A valid 1x1 PNG, used to drive the file-upload control.
+_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+)
 
 # Every test in this module is an e2e test (excluded from the default run).
 pytestmark = pytest.mark.e2e
@@ -46,3 +53,19 @@ def test_generate_scripts_flow(page: Page, live_server: str):
 def test_library_shows_seeded_script(page: Page, live_server: str):
     page.goto(f"{live_server}/scripts")
     expect(page.locator("#script-list")).to_contain_text("Seeded script")
+
+
+def test_submit_generation_job(page: Page, live_server: str):
+    page.goto(f"{live_server}/jobs/new")
+    expect(page.get_by_role("heading", name="New generation job")).to_be_visible()
+
+    page.select_option("#prompt_slug", "video-review-prompt")
+    page.set_input_files(
+        "#image", files=[{"name": "frame.png", "mimeType": "image/png", "buffer": _PNG}]
+    )
+    page.get_by_role("button", name="Queue job").click()
+
+    # Lands back on the queue with the new job listed as Queued.
+    page.wait_for_url("**/jobs")
+    expect(page.locator("#job-list")).to_contain_text("frame.png")
+    expect(page.locator("#job-list")).to_contain_text("Queued")

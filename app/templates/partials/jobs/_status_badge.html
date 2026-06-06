@@ -1,0 +1,19 @@
+{#
+  Job status pill. Expects `status` (string). queued → running → done | failed.
+#}
+{% set styles = {
+  "queued": "bg-surface-2 text-muted",
+  "running": "bg-brand/15 text-brand",
+  "done": "bg-success/15 text-success",
+  "failed": "bg-danger/15 text-danger",
+} %}
+{% set dots = {
+  "queued": "bg-muted",
+  "running": "bg-brand",
+  "done": "bg-success",
+  "failed": "bg-danger",
+} %}
+<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium {{ styles.get(status, 'bg-surface-2 text-muted') }}">
+  <span class="h-1.5 w-1.5 rounded-full {{ dots.get(status, 'bg-muted') }}"></span>
+  {{ JOB_STATUS_LABELS.get(status, status|capitalize) }}
+</span>

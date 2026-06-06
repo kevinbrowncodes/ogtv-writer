@@ -1,0 +1,66 @@
+{% extends "shell.html" %}
+{% block page_title %}New job{% endblock %}
+
+{% set v = values or {} %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <a href="/jobs" class="text-sm text-brand hover:underline">← Queue</a>
+    <h1 class="mt-1 text-2xl font-semibold tracking-tight">New generation job</h1>
+    <p class="text-sm text-muted">Pick a prompt, attach a first-frame image, and queue it.</p>
+  </div>
+
+  {% if prompts %}
+  <form method="post" action="/jobs" enctype="multipart/form-data" class="card max-w-2xl space-y-5 p-5">
+    <!-- Prompt -->
+    <div>
+      <label class="label" for="prompt_slug">Prompt</label>
+      <select
+        id="prompt_slug" name="prompt_slug" class="input"
+        hx-get="/jobs/new/count-field" hx-target="#count-field" hx-swap="innerHTML"
+        hx-trigger="change" hx-include="this"
+      >
+        <option value="">Select a prompt…</option>
+        {% for p in prompts %}
+          <option value="{{ p.slug }}" {% if v.get('prompt_slug') == p.slug %}selected{% endif %}>{{ p.title }} ({{ p.filename }})</option>
+        {% endfor %}
+      </select>
+      {% if errors.prompt_slug %}<p class="field-error">{{ errors.prompt_slug }}</p>{% endif %}
+    </div>
+
+    <!-- Count (only shown for {{COUNT}} prompts) -->
+    <div id="count-field">
+      {% include "partials/jobs/_count_field.html" %}
+    </div>
+
+    <!-- First-frame image -->
+    <div>
+      <label class="label" for="image">First-frame image</label>
+      <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/webp" class="input" />
+      <p class="mt-1 text-xs text-muted">JPG, PNG, or WebP — up to 10 MB.</p>
+      {% if errors.image %}<p class="field-error">{{ errors.image }}</p>{% endif %}
+    </div>
+
+    <!-- Addendum -->
+    <div>
+      <label class="label" for="addendum">Addendum <span class="text-muted">(optional)</span></label>
+      <textarea id="addendum" name="addendum" rows="4" class="input" placeholder="Extra details for just this job…">{{ v.get('addendum', '') }}</textarea>
+      {% if errors.addendum %}<p class="field-error">{{ errors.addendum }}</p>{% endif %}
+    </div>
+
+    <div class="flex gap-2">
+      <button type="submit" class="btn-primary">Queue job</button>
+      <a href="/jobs" class="btn-secondary">Cancel</a>
+    </div>
+  </form>
+  {% else %}
+  <div class="card px-5 py-16 text-center">
+    <p class="text-sm font-medium">No prompts available</p>
+    <p class="mt-1 text-sm text-muted">
+      Add one under <a href="/prompts" class="text-brand hover:underline">Prompts</a> first.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

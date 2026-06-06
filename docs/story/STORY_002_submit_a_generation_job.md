@@ -1,6 +1,6 @@
 # STORY_002 — Submit a generation job
 
-> Epic: EPIC_001 · Status: Not started
+> Epic: EPIC_001 · Status: Done
 
 **As** the OnlyGainsTV operator, **I want** to create a generation job by picking a
 prompt, uploading a first-frame image, and optionally adding an addendum and a count,
@@ -13,12 +13,12 @@ STORY_003.
 
 ## Acceptance Criteria
 
-- [ ] A **New job** form (`GET /jobs/new`) lets me: choose a prompt from the catalog (STORY_001), **upload one image**, type an optional **addendum**, and set a **count**.
-- [ ] The **count field only appears when the chosen prompt uses `{{COUNT}}`** (driven from the prompt picker); prompts without it hide/omit it.
-- [ ] Submitting (`POST /jobs`) saves the uploaded image under `data/uploads/` and creates a `Job` with status **`queued`**, then redirects to the queue with a success flash.
-- [ ] The **queue page** (`GET /jobs`) lists jobs newest-first with their prompt, a thumbnail or image filename, and status badge (`queued` for now).
-- [ ] **Validation:** missing image, a non-image file, or an unknown prompt re-renders the form with a `422` and a clear message — no server error, nothing persisted.
-- [ ] Uploaded images live only under `data/` (git-ignored); originals are never served from `app/static`.
+- [x] A **New job** form (`GET /jobs/new`) lets me: choose a prompt from the catalog (STORY_001), **upload one image**, type an optional **addendum**, and set a **count**.
+- [x] The **count field only appears when the chosen prompt uses `{{COUNT}}`** (driven from the prompt picker); prompts without it hide/omit it.
+- [x] Submitting (`POST /jobs`) saves the uploaded image under `data/uploads/` and creates a `Job` with status **`queued`**, then redirects to the queue with a success flash.
+- [x] The **queue page** (`GET /jobs`) lists jobs newest-first with their prompt, a thumbnail or image filename, and status badge (`queued` for now).
+- [x] **Validation:** missing image, a non-image file, or an unknown prompt re-renders the form with a `422` and a clear message — no server error, nothing persisted.
+- [x] Uploaded images live only under `data/` (git-ignored); originals are never served from `app/static`.
 
 ## Technical Notes
 

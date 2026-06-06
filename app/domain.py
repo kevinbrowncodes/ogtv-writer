@@ -64,6 +64,15 @@ TAG_KIND_LABELS: dict[str, str] = {
     "style": "Style",
 }
 
+# --- Job lifecycle -----------------------------------------------------------
+JOB_STATUSES = ("queued", "running", "done", "failed")
+JOB_STATUS_LABELS: dict[str, str] = {
+    "queued": "Queued",
+    "running": "Running",
+    "done": "Done",
+    "failed": "Failed",
+}
+
 # Counts of script generations offered in the workspace.
 GENERATION_COUNTS = (1, 3, 5, 10)
 

@@ -26,7 +26,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.logging_config import configure_logging
-from app.routes import generate, health, pages, prompt_catalog, pwa, scripts, tags
+from app.routes import generate, health, jobs, pages, prompt_catalog, pwa, scripts, tags
 from app.routes import script_templates as script_templates_routes
 from app.routes import settings as settings_routes
 from app.templating import templates
@@ -92,6 +92,7 @@ def _register_routers(app: FastAPI) -> None:
     # app/routes/prompts.py + Prompt model/service/templates are removed in STORY_006.
     app.include_router(prompt_catalog.router)
     app.include_router(generate.router)
+    app.include_router(jobs.router)
     app.include_router(scripts.router)
     app.include_router(script_templates_routes.router)
     app.include_router(tags.router)

@@ -1,0 +1,17 @@
+{#
+  The count input — only rendered when the chosen prompt uses a {{COUNT}}
+  placeholder. Swapped into #count-field by HTMX when the prompt changes, and
+  included on initial render of the form.
+#}
+{% if selected and selected.has_count %}
+<label class="label" for="count">Number of scripts</label>
+<input
+  id="count" name="count" type="number" min="1" max="50"
+  value="{{ (values.get('count') if values else '') or 8 }}"
+  class="input w-32"
+/>
+<p class="mt-1 text-xs text-muted">
+  This prompt uses <code class="rounded bg-surface-2 px-1">{{ "{{COUNT}}" }}</code> — choose how many to generate.
+</p>
+{% if errors and errors.count %}<p class="field-error">{{ errors.count }}</p>{% endif %}
+{% endif %}

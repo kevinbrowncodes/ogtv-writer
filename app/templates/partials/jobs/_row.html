@@ -1,0 +1,15 @@
+{#
+  One row in the job queue. Expects `job`.
+#}
+<tr class="align-top">
+  <td class="px-5 py-3">
+    <span class="font-medium">{{ job.prompt_filename or job.prompt_slug }}</span>
+    {% if job.addendum %}
+      <span class="ml-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">+ addendum</span>
+    {% endif %}
+  </td>
+  <td class="hidden px-5 py-3 text-muted md:table-cell">{{ job.image_filename }}</td>
+  <td class="hidden px-5 py-3 text-muted lg:table-cell">{{ job.count if job.count else "—" }}</td>
+  <td class="px-5 py-3">{% set status = job.status %}{% include "partials/jobs/_status_badge.html" %}</td>
+  <td class="hidden px-5 py-3 text-xs text-muted lg:table-cell">{{ job.created_at.strftime("%b %d, %Y %H:%M") }}</td>
+</tr>
