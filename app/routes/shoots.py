@@ -20,6 +20,13 @@ from app.templating import flash, templates
 router = APIRouter(tags=["shoots"])
 
 
+def _queue_state(db: DbSession) -> dict:
+    """Running/queued counts + whether the dashboard should keep polling."""
+    running = job_service.count_jobs(db, status="running")
+    queued = job_service.count_jobs(db, status="queued")
+    return {"running": running, "queued": queued, "active": bool(running or queued)}
+
+
 @router.get("/shoots", response_class=HTMLResponse)
 def shoots_page(request: Request, db: DbSession) -> HTMLResponse:
     return templates.TemplateResponse(
@@ -31,7 +38,18 @@ def shoots_page(request: Request, db: DbSession) -> HTMLResponse:
             "models": generation_service.available_models(),
             "default_model": get_settings().gemini_model,
             "source_root": get_settings().source_root,
+            **_queue_state(db),
         },
+    )
+
+
+@router.get("/shoots/list", response_class=HTMLResponse)
+def shoots_list(request: Request, db: DbSession) -> HTMLResponse:
+    """The channel tables on their own — HTMX poll target so statuses update live."""
+    return templates.TemplateResponse(
+        request,
+        "partials/shoots/_list.html",
+        {"channels": shoots.list_by_channel(), **_queue_state(db)},
     )
 
 

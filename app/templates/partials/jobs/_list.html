@@ -5,6 +5,11 @@
 #}
 <div id="job-list" class="card overflow-hidden"
   {% if active %}hx-get="/jobs/list" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+  {% if active %}
+  <p class="border-b border-border px-5 py-2 text-xs text-muted">
+    Generating… {{ running }} running · {{ queued }} queued (auto-refreshing)
+  </p>
+  {% endif %}
   {% if jobs %}
   <div class="overflow-x-auto">
     <table class="w-full text-sm">

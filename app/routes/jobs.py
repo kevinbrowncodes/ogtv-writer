@@ -6,7 +6,6 @@ status (HTMX polling) while the background worker processes the queue.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -25,9 +24,11 @@ from app.templating import flash, templates
 router = APIRouter(tags=["jobs"])
 
 
-def _active(jobs: Sequence[Job]) -> bool:
-    """True while any job is still working — drives whether the list polls."""
-    return any(j.status in ("queued", "running") for j in jobs)
+def _queue_state(db: DbSession) -> dict:
+    """Running/queued counts + whether the list should keep polling."""
+    running = job_service.count_jobs(db, status="running")
+    queued = job_service.count_jobs(db, status="queued")
+    return {"running": running, "queued": queued, "active": bool(running or queued)}
 
 
 def _get_or_404(db: DbSession, job_id: int) -> Job:
@@ -41,7 +42,7 @@ def _get_or_404(db: DbSession, job_id: int) -> Job:
 def jobs_page(request: Request, db: DbSession) -> HTMLResponse:
     jobs = job_service.list_jobs(db)
     return templates.TemplateResponse(
-        request, "pages/jobs.html", {"jobs": jobs, "active": _active(jobs)}
+        request, "pages/jobs.html", {"jobs": jobs, **_queue_state(db)}
     )
 
 
@@ -104,7 +105,7 @@ def jobs_list(request: Request, db: DbSession) -> HTMLResponse:
     """The queue table on its own — HTMX poll target for live status updates."""
     jobs = job_service.list_jobs(db)
     return templates.TemplateResponse(
-        request, "partials/jobs/_list.html", {"jobs": jobs, "active": _active(jobs)}
+        request, "partials/jobs/_list.html", {"jobs": jobs, **_queue_state(db)}
     )
 
 

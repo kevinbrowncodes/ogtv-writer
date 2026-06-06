@@ -66,6 +66,9 @@ def test_shoots_dashboard_lists_pending(page: Page, live_server: str):
     # The seeded shoot (only 01.jpg, no script) shows as Pending.
     expect(page.locator("body")).to_contain_text("test-shoot")
     expect(page.locator("body")).to_contain_text("Pending")
+    # The shared picker + live list render: Run-all button and a per-shoot Run button.
+    expect(page.get_by_role("button", name="Run all pending")).to_be_visible()
+    expect(page.locator("#shoots-list")).to_contain_text("Run")
 
 
 def test_completed_job_shows_split_scripts(page: Page, live_server: str):

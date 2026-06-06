@@ -1,0 +1,51 @@
+{#
+  Channel tables for the Shoots dashboard. Root id="shoots-list" is the HTMX poll
+  target: it self-refreshes every 3s while a job is queued/running (so statuses flip
+  Pending → Done live) and stops once the queue is idle. Sits inside the page's <form>,
+  so the Run buttons still submit the shared prompt/model/count picker.
+  Expects: channels, active, running, queued.
+#}
+<div id="shoots-list" class="space-y-6"
+  {% if active %}hx-get="/shoots/list" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+  {% if active %}
+  <p class="text-xs text-muted">Generating… {{ running }} running · {{ queued }} queued (auto-refreshing)</p>
+  {% endif %}
+
+  {% set styles = {"done": "bg-success/15 text-success", "pending": "bg-brand/15 text-brand", "no_frame": "bg-surface-2 text-muted"} %}
+  {% set labels = {"done": "Done", "pending": "Pending", "no_frame": "No frame"} %}
+  {% for channel, shoot_list in channels.items() %}
+  <div class="card overflow-hidden">
+    <div class="border-b border-border px-5 py-3"><h2 class="text-sm font-semibold">{{ channel }}</h2></div>
+    <table class="w-full text-sm">
+      <thead class="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+        <tr>
+          <th class="px-5 py-3 font-medium">Shoot</th>
+          <th class="hidden px-5 py-3 font-medium md:table-cell">Frame</th>
+          <th class="px-5 py-3 font-medium">Status</th>
+          <th class="px-5 py-3 text-right font-medium">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border">
+        {% for s in shoot_list %}
+        <tr class="align-middle">
+          <td class="px-5 py-3 font-medium">{{ s.name }}</td>
+          <td class="hidden px-5 py-3 text-muted md:table-cell">{{ s.frame or "—" }}</td>
+          <td class="px-5 py-3">
+            <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ styles[s.status] }}">{{ labels[s.status] }}</span>
+          </td>
+          <td class="px-5 py-3 text-right">
+            {% if s.status == "pending" %}
+            <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-primary px-2.5 py-1 text-xs">Run</button>
+            {% elif s.status == "done" %}
+            <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-ghost px-2.5 py-1 text-xs">Re-run</button>
+            {% else %}
+            <span class="text-xs text-muted">needs 01.*</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>

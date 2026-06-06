@@ -147,6 +147,25 @@ def test_run_job_marks_failed_on_client_error(db, tmp_path, monkeypatch):
     assert "api down" in job.error
 
 
+def test_run_job_surfaces_empty_response_reason(db, tmp_path, monkeypatch):
+    """An empty/blocked Gemini response → failed job whose error names the reason."""
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    def blocked(**kwargs):
+        raise gemini_client.GenerationError("Gemini returned no content — prompt blocked (SAFETY).")
+
+    monkeypatch.setattr(gemini_client, "generate", blocked)
+
+    job = _running_job(db, tmp_path)
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "failed"
+    assert "no content" in job.error
+    assert "SAFETY" in job.error
+
+
 def test_run_job_without_api_key_fails_and_skips_client(db, tmp_path, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "")
     get_settings.cache_clear()

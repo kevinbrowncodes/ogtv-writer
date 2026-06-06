@@ -7,6 +7,13 @@ importing the app at rest does not require the package to be installed.
 
 from __future__ import annotations
 
+from typing import Any
+
+
+class GenerationError(RuntimeError):
+    """Raised when Gemini returns no usable content (e.g. a safety block)."""
+
+
 # Models whose name contains any of these aren't general text generators
 # (image / audio / tts / robotics / research / …) — hidden from the script picker.
 _NON_TEXT_MARKERS = (
@@ -51,11 +58,25 @@ def list_models(api_key: str) -> list[str]:
         return []
 
 
+def _block_reason(response: Any) -> str:
+    """Best-effort explanation for an empty response (safety block, etc.)."""
+    try:
+        feedback = getattr(response, "prompt_feedback", None)
+        if feedback is not None and getattr(feedback, "block_reason", None):
+            return f"prompt blocked ({feedback.block_reason})"
+        candidates = getattr(response, "candidates", None) or []
+        if candidates and getattr(candidates[0], "finish_reason", None):
+            return f"finish_reason={candidates[0].finish_reason}"
+    except Exception:
+        pass
+    return "no content returned"
+
+
 def generate(*, prompt: str, image_bytes: bytes, image_mime: str, model: str, api_key: str) -> str:
     """Send a prompt + image to Gemini and return the response text.
 
-    Raises if the SDK is missing or the call fails; the caller turns that into a
-    failed job.
+    Raises :class:`GenerationError` when the response carries no text (e.g. a safety
+    block), or re-raises SDK/transport errors; the caller turns either into a failed job.
     """
     from google import genai
     from google.genai import types
@@ -68,4 +89,11 @@ def generate(*, prompt: str, image_bytes: bytes, image_mime: str, model: str, ap
             prompt,
         ],
     )
-    return response.text or ""
+    # `.text` can raise when a response was blocked and has no candidate.
+    try:
+        text = response.text
+    except Exception:
+        text = None
+    if text and text.strip():
+        return text
+    raise GenerationError(f"Gemini returned no content — {_block_reason(response)}.")
