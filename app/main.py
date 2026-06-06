@@ -28,6 +28,7 @@ from app.config import get_settings
 from app.logging_config import configure_logging
 from app.routes import health, jobs, pages, prompt_catalog, pwa, scripts, tags
 from app.routes import settings as settings_routes
+from app.routes import shoots as shoots_routes
 from app.services import job_worker
 from app.templating import templates
 
@@ -100,6 +101,7 @@ def _register_routers(app: FastAPI) -> None:
     # The prompt "inbox" (DB) is replaced by a file-based catalog (STORY_001). The old
     # app/routes/prompts.py + Prompt model/service/templates are removed in STORY_006.
     app.include_router(prompt_catalog.router)
+    app.include_router(shoots_routes.router)
     app.include_router(jobs.router)
     app.include_router(scripts.router)
     app.include_router(tags.router)

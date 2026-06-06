@@ -1,0 +1,88 @@
+{% extends "shell.html" %}
+{% block page_title %}Shoots{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">Shoots</h1>
+    <p class="text-sm text-muted">
+      Shoot folders under <code class="rounded bg-surface-2 px-1">{{ source_root }}</code>.
+      Pick a prompt + model, then Run the pending ones.
+    </p>
+  </div>
+
+  {% if channels %}
+  {# One form: the picker fields below are shared by every Run / Run-all button. #}
+  <form method="post" action="/shoots/run-all" class="space-y-6">
+    <div class="card grid items-end gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <label class="label" for="prompt_slug">Prompt</label>
+        <select id="prompt_slug" name="prompt_slug" class="input"
+          hx-get="/jobs/new/count-field" hx-target="#shoots-count-field" hx-trigger="change" hx-include="this">
+          <option value="">Select a prompt…</option>
+          {% for p in prompts %}<option value="{{ p.slug }}">{{ p.title }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="label" for="model">Model</label>
+        <select id="model" name="model" class="input">
+          {% for m in models %}
+            <option value="{{ m }}" {% if m == default_model %}selected{% endif %}>{{ m }} — {{ price_label(m) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div id="shoots-count-field">{% include "partials/jobs/_count_field.html" %}</div>
+      <div>
+        <button type="submit" formaction="/shoots/run-all" class="btn-secondary w-full">Run all pending</button>
+      </div>
+    </div>
+
+    {% for channel, shoot_list in channels.items() %}
+    <div class="card overflow-hidden">
+      <div class="border-b border-border px-5 py-3"><h2 class="text-sm font-semibold">{{ channel }}</h2></div>
+      <table class="w-full text-sm">
+        <thead class="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+          <tr>
+            <th class="px-5 py-3 font-medium">Shoot</th>
+            <th class="hidden px-5 py-3 font-medium md:table-cell">Frame</th>
+            <th class="px-5 py-3 font-medium">Status</th>
+            <th class="px-5 py-3 text-right font-medium">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {% set styles = {"done": "bg-success/15 text-success", "pending": "bg-brand/15 text-brand", "no_frame": "bg-surface-2 text-muted"} %}
+          {% set labels = {"done": "Done", "pending": "Pending", "no_frame": "No frame"} %}
+          {% for s in shoot_list %}
+          <tr class="align-middle">
+            <td class="px-5 py-3 font-medium">{{ s.name }}</td>
+            <td class="hidden px-5 py-3 text-muted md:table-cell">{{ s.frame or "—" }}</td>
+            <td class="px-5 py-3">
+              <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ styles[s.status] }}">{{ labels[s.status] }}</span>
+            </td>
+            <td class="px-5 py-3 text-right">
+              {% if s.status == "pending" %}
+              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-primary px-2.5 py-1 text-xs">Run</button>
+              {% elif s.status == "done" %}
+              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-ghost px-2.5 py-1 text-xs">Re-run</button>
+              {% else %}
+              <span class="text-xs text-muted">needs 01.*</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </form>
+  {% else %}
+  <div class="card px-5 py-16 text-center">
+    <p class="text-sm font-medium">No shoots found</p>
+    <p class="mx-auto mt-1 max-w-md text-sm text-muted">
+      Add a folder under <code class="rounded bg-surface-2 px-1">{{ source_root }}/&lt;channel&gt;/&lt;shoot&gt;/</code>
+      with an <code class="rounded bg-surface-2 px-1">01.jpg</code> frame, then refresh.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

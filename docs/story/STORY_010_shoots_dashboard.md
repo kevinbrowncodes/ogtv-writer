@@ -1,6 +1,6 @@
 # STORY_010 — Run pending shoots from a channel dashboard
 
-> Epic: — (follow-on, **depends on** [STORY_009](STORY_009_folder_based_jobs.md)) · Status: Not started
+> Epic: — (follow-on, **depends on** [STORY_009](STORY_009_folder_based_jobs.md)) · Status: Done
 
 **As** the OnlyGainsTV operator, **I want** a view that shows my logline shoots grouped
 by channel and lets me **Run** the ones that don't have a script yet — picking the
@@ -27,18 +27,18 @@ script back into the shoot folder).
 
 ## Acceptance Criteria
 
-- [ ] A **Shoots** page (new nav item) lists shoot folders under `SOURCE_ROOT`, **grouped
+- [x] A **Shoots** page (new nav item) lists shoot folders under `SOURCE_ROOT`, **grouped
       by channel**, each showing its frame name and status (Done / Pending / No-frame).
-- [ ] A **prompt + model + count** picker (defaults pre-filled) controls what Run uses;
+- [x] A **prompt + model + count** picker (defaults pre-filled) controls what Run uses;
       the count field appears only for `{{COUNT}}` prompts (as on the New-job form).
-- [ ] **Pending** shoots show a **Run** button; each channel (and/or the page) has a **Run
+- [x] **Pending** shoots show a **Run** button; each channel (and/or the page) has a **Run
       all pending** that queues a folder job for every pending shoot with the current picker.
-- [ ] Hitting Run **creates a folder job** (STORY_009) for that shoot — it appears in the
+- [x] Hitting Run **creates a folder job** (STORY_009) for that shoot — it appears in the
       queue, generates, and writes the script(s) into the shoot folder; the shoot becomes Done.
-- [ ] **No-frame** shoots are shown but not runnable (clear "needs a frame" state); a
+- [x] **No-frame** shoots are shown but not runnable (clear "needs a frame" state); a
       **Done** shoot shows it already has a script (with a way to re-run if wanted).
-- [ ] The page reflects status changes (a manual refresh is fine; live update is a bonus).
-- [ ] Path-safe: only shoots inside `SOURCE_ROOT` are listed/runnable.
+- [x] The page reflects status changes (a manual refresh is fine; live update is a bonus).
+- [x] Path-safe: only shoots inside `SOURCE_ROOT` are listed/runnable.
 
 ## Technical Notes
 

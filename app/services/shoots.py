@@ -26,6 +26,7 @@ class Shoot:
     channel: str
     name: str
     frame: str | None  # "01.jpg" etc., or None when the folder has no 01.* frame
+    status: str  # "done" (has a script), "pending" (frame, no script), or "no_frame"
 
 
 def _root() -> Path:
@@ -40,9 +41,20 @@ def _find_frame(directory: Path) -> str | None:
     return None
 
 
+def _has_script(directory: Path) -> bool:
+    return any(directory.glob("script*.txt"))
+
+
 def _shoot(shoot_dir: Path) -> Shoot:
     rel = str(shoot_dir.resolve().relative_to(_root()))
-    return Shoot(rel, shoot_dir.parent.name, shoot_dir.name, _find_frame(shoot_dir))
+    frame = _find_frame(shoot_dir)
+    if _has_script(shoot_dir):
+        status = "done"
+    elif frame:
+        status = "pending"
+    else:
+        status = "no_frame"
+    return Shoot(rel, shoot_dir.parent.name, shoot_dir.name, frame, status)
 
 
 def list_shoots() -> list[Shoot]:
@@ -56,6 +68,19 @@ def list_shoots() -> list[Shoot]:
             if _find_frame(shoot_dir):
                 shoots.append(_shoot(shoot_dir))
     return shoots
+
+
+def list_by_channel() -> dict[str, list[Shoot]]:
+    """All shoot folders grouped by channel (including frameless ones), each with a status."""
+    root = _root()
+    if not root.is_dir():
+        return {}
+    by_channel: dict[str, list[Shoot]] = {}
+    for channel_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+        shoots = [_shoot(d) for d in sorted(p for p in channel_dir.iterdir() if p.is_dir())]
+        if shoots:
+            by_channel[channel_dir.name] = shoots
+    return by_channel
 
 
 def resolve(rel_dir: str) -> Shoot | None:

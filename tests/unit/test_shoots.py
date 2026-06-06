@@ -61,6 +61,21 @@ def test_resolve_rejects_traversal_and_frameless(source_root):
     assert shoots.resolve("") is None
 
 
+def test_list_by_channel_groups_and_classifies_status(source_root):
+    done = _make_shoot(source_root, "only-gains-tv", "26-brown", "01.jpg")
+    (done / "script1.txt").write_text("x")  # has a script → done
+    _make_shoot(source_root, "only-gains-tv", "26-orange", "01.jpg")  # frame, no script → pending
+    _make_shoot(source_root, "only-gains-tv", "26-noframe", frame=None)  # no frame
+    _make_shoot(source_root, "youtube", "yt-1", "01.jpeg")  # pending
+
+    by_channel = shoots.list_by_channel()
+
+    assert set(by_channel) == {"only-gains-tv", "youtube"}
+    statuses = {s.name: s.status for s in by_channel["only-gains-tv"]}
+    assert statuses == {"26-brown": "done", "26-orange": "pending", "26-noframe": "no_frame"}
+    assert by_channel["youtube"][0].status == "pending"
+
+
 def test_write_outputs_single_then_multi(source_root):
     d = _make_shoot(source_root, "ch", "s", "01.jpg")
 

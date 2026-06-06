@@ -60,6 +60,14 @@ def test_submit_generation_job(page: Page, live_server: str):
     expect(page.locator("#job-status")).to_contain_text("Queued")
 
 
+def test_shoots_dashboard_lists_pending(page: Page, live_server: str):
+    page.goto(f"{live_server}/shoots")
+    expect(page.get_by_role("heading", name="Shoots")).to_be_visible()
+    # The seeded shoot (only 01.jpg, no script) shows as Pending.
+    expect(page.locator("body")).to_contain_text("test-shoot")
+    expect(page.locator("body")).to_contain_text("Pending")
+
+
 def test_completed_job_shows_split_scripts(page: Page, live_server: str):
     page.goto(f"{live_server}/jobs")
     # Open the seeded completed job (the only row marked Done).
