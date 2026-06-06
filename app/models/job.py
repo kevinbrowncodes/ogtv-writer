@@ -34,6 +34,9 @@ class Job(Base, TimestampMixin):
     addendum: Mapped[str] = mapped_column(Text, default="")
     count: Mapped[int | None] = mapped_column(default=None)
 
+    # Which Gemini model this job uses ("" = the configured default).
+    model: Mapped[str] = mapped_column(String(60), default="")
+
     # The uploaded first-frame image (repo-relative path under data/uploads/).
     image_path: Mapped[str] = mapped_column(String(500), default="")
     image_filename: Mapped[str] = mapped_column(String(255), default="")

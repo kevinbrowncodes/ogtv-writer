@@ -20,6 +20,9 @@ from collections.abc import Iterator
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./data/e2e.db")
 os.environ.setdefault("SECRET_KEY", "e2e-secret-key")
+# Blank the Gemini key so the live e2e server never calls the API (worker is off
+# under tests anyway); the model picker falls back to the default.
+os.environ["GEMINI_API_KEY"] = ""
 
 import pytest  # noqa: E402
 import uvicorn  # noqa: E402

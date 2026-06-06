@@ -47,6 +47,10 @@ def test_submit_generation_job(page: Page, live_server: str):
     page.goto(f"{live_server}/jobs/new")
     expect(page.get_by_role("heading", name="New generation job")).to_be_visible()
 
+    # The model picker is present, defaulting to the configured model.
+    expect(page.locator("#model")).to_be_visible()
+    expect(page.locator("#model")).to_contain_text("gemini-2.5-flash")
+
     page.select_option("#prompt_slug", "video-review-prompt")
     page.set_input_files(
         "#image", files=[{"name": "frame.png", "mimeType": "image/png", "buffer": _PNG}]

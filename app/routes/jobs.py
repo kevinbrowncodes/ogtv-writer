@@ -13,11 +13,12 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import ValidationError
 
+from app.config import get_settings
 from app.dependencies import DbSession
 from app.models.job import Job
 from app.routes.common import field_errors
 from app.schemas.job import JobCreate
-from app.services import job_service, prompt_catalog, script_service
+from app.services import generation_service, job_service, prompt_catalog, script_service
 from app.services.uploads import UploadError, save_upload
 from app.templating import flash, templates
 
@@ -53,7 +54,9 @@ def job_new_page(request: Request, prompt: str = "") -> HTMLResponse:
         {
             "prompts": prompt_catalog.list_prompts(),
             "selected": selected,
-            "values": {"prompt_slug": prompt, "addendum": "", "count": ""},
+            "models": generation_service.available_models(),
+            "default_model": get_settings().gemini_model,
+            "values": {"prompt_slug": prompt, "addendum": "", "count": "", "model": ""},
             "errors": {},
         },
     )
@@ -120,10 +123,14 @@ def jobs_create(
     prompt_slug: Annotated[str, Form()] = "",
     addendum: Annotated[str, Form()] = "",
     count: Annotated[str, Form()] = "",
+    model: Annotated[str, Form()] = "",
     image: Annotated[UploadFile | None, File()] = None,
 ) -> Response:
     selected = prompt_catalog.get_prompt(prompt_slug) if prompt_slug else None
-    values = {"prompt_slug": prompt_slug, "addendum": addendum, "count": count}
+    models = generation_service.available_models()
+    default_model = get_settings().gemini_model
+    chosen_model = model if model in models else default_model
+    values = {"prompt_slug": prompt_slug, "addendum": addendum, "count": count, "model": model}
     errors: dict[str, str] = {}
 
     if selected is None:
@@ -160,6 +167,8 @@ def jobs_create(
             {
                 "prompts": prompt_catalog.list_prompts(),
                 "selected": selected,
+                "models": models,
+                "default_model": default_model,
                 "values": values,
                 "errors": errors,
             },
@@ -175,6 +184,7 @@ def jobs_create(
         count=parsed_count,
         image_path=image_path,
         image_filename=image_filename,
+        model=chosen_model,
     )
     flash(request, "Job queued.", "success")
     return RedirectResponse("/jobs", status_code=303)

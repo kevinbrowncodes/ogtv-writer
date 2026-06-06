@@ -17,6 +17,9 @@ os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./data/test.db")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("DEBUG", "false")
+# Force-blank the Gemini key so tests NEVER make a live call, even though a real
+# key may live in .env. Tests that exercise generation set their own + mock the client.
+os.environ["GEMINI_API_KEY"] = ""
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

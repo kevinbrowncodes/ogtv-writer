@@ -66,6 +66,7 @@ templates.env.globals.update(
         "TAG_KIND_LABELS": domain.TAG_KIND_LABELS,
         "JOB_STATUS_LABELS": domain.JOB_STATUS_LABELS,
         "parse_tags": domain.parse_tags,
+        "price_label": domain.price_label,
     }
 )
 

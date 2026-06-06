@@ -40,6 +40,31 @@ TAG_KIND_LABELS: dict[str, str] = {
 }
 
 
+# --- Gemini model pricing (REFERENCE ONLY) -----------------------------------
+# USD per 1M tokens. The Gemini API does not expose pricing, so this is a
+# hand-maintained table — verify current numbers against
+# https://ai.google.dev/gemini-api/docs/pricing. Models not listed render as "—".
+GEMINI_PRICING: dict[str, dict[str, float]] = {
+    "gemini-2.5-pro": {"input": 1.25, "output": 10.00},
+    "gemini-2.5-flash": {"input": 0.30, "output": 2.50},
+    "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40},
+    "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
+    "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30},
+}
+
+
+def price_label(model: str) -> str:
+    """Human-readable reference price for a model, or '—' if unknown.
+
+    Approximate — see the note on GEMINI_PRICING. Example:
+    ``$0.3 in / $2.5 out · per 1M tok``.
+    """
+    price = GEMINI_PRICING.get(model)
+    if not price:
+        return "—"
+    return f"${price['input']:g} in / ${price['output']:g} out · per 1M tok"
+
+
 def parse_tags(raw: str) -> list[str]:
     """Split a comma-separated tag string into a clean, de-duplicated list."""
     seen: list[str] = []

@@ -18,6 +18,10 @@
       <h2 class="text-sm font-semibold">Details</h2>
       <div class="flex justify-between gap-3"><dt class="text-muted">Prompt</dt><dd class="font-medium">{{ job.prompt_filename or job.prompt_slug }}</dd></div>
       <div class="flex justify-between gap-3"><dt class="text-muted">Image</dt><dd>{{ job.image_filename }}</dd></div>
+      <div class="flex justify-between gap-3">
+        <dt class="text-muted">Model</dt>
+        <dd class="text-right">{{ job.model or "(default)" }}<span class="block text-xs font-normal text-muted">{{ price_label(job.model) }}</span></dd>
+      </div>
       {% if job.count %}<div class="flex justify-between gap-3"><dt class="text-muted">Scripts</dt><dd>{{ job.count }}</dd></div>{% endif %}
       <div class="flex justify-between gap-3"><dt class="text-muted">Created</dt><dd>{{ job.created_at.strftime("%b %d, %Y %H:%M") }}</dd></div>
       {% if job.addendum %}

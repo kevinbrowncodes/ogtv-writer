@@ -34,6 +34,20 @@
       {% include "partials/jobs/_count_field.html" %}
     </div>
 
+    <!-- Model -->
+    <div>
+      <label class="label" for="model">Model</label>
+      <select id="model" name="model" class="input">
+        {% for m in models %}
+          <option value="{{ m }}" {% if m == (v.get('model') or default_model) %}selected{% endif %}>{{ m }} — {{ price_label(m) }}</option>
+        {% endfor %}
+      </select>
+      <p class="mt-1 text-xs text-muted">
+        Defaults to <code class="rounded bg-surface-2 px-1">{{ default_model }}</code>. Prices are approximate —
+        <a href="https://ai.google.dev/gemini-api/docs/pricing" class="text-brand hover:underline" target="_blank" rel="noopener">verify</a>.
+      </p>
+    </div>
+
     <!-- First-frame image -->
     <div>
       <label class="label" for="image">First-frame image</label>

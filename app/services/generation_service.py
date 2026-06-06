@@ -46,6 +46,29 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+_models_cache: list[str] | None = None
+
+
+def available_models() -> list[str]:
+    """Selectable Gemini models, cached for the process; always includes the default.
+
+    Fetched live once. On failure/empty it falls back to just the configured default
+    and is NOT cached, so it retries once a key/connection is available.
+    """
+    global _models_cache
+    settings = get_settings()
+    default = settings.gemini_model
+    if _models_cache is not None:
+        return _models_cache
+    models = gemini_client.list_models(settings.gemini_api_key) if settings.gemini_api_key else []
+    if not models:
+        return [default]
+    if default not in models:
+        models = [default, *models]
+    _models_cache = models
+    return models
+
+
 def assemble_prompt(body: str, *, count: int | None, addendum: str) -> str:
     """Build the final prompt sent to Gemini.
 
@@ -91,7 +114,7 @@ def run_job(db: Session, job: Job) -> None:
             prompt=assembled,
             image_bytes=image_bytes,
             image_mime=mime,
-            model=settings.gemini_model,
+            model=job.model or settings.gemini_model,
             api_key=settings.gemini_api_key,
         )
 

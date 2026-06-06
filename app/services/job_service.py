@@ -26,6 +26,7 @@ def create_job(
     count: int | None,
     image_path: str,
     image_filename: str,
+    model: str = "",
 ) -> Job:
     """Create a queued job."""
     job = Job(
@@ -35,6 +36,7 @@ def create_job(
         count=count,
         image_path=image_path,
         image_filename=image_filename,
+        model=model,
         status="queued",
     )
     db.add(job)

@@ -80,6 +80,25 @@ def test_run_job_stores_result(db, tmp_path, monkeypatch):
     assert job.error == ""
 
 
+def test_run_job_uses_job_model(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    get_settings.cache_clear()
+    captured: dict[str, str] = {}
+
+    def fake_generate(**kwargs):
+        captured.update(kwargs)
+        return "<<<SCRIPT 1>>>body<<<END SCRIPT>>>"
+
+    monkeypatch.setattr(gemini_client, "generate", fake_generate)
+
+    job = _running_job(db, tmp_path)
+    job.model = "gemini-2.5-pro"
+    db.commit()
+    generation_service.run_job(db, job)
+
+    assert captured["model"] == "gemini-2.5-pro"
+
+
 def test_run_job_marks_failed_on_client_error(db, tmp_path, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
     get_settings.cache_clear()
