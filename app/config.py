@@ -61,9 +61,10 @@ class Settings(BaseSettings):
     feature_dashboard: bool = True
 
     # >>> ADD APP-SPECIFIC SETTINGS BELOW THIS LINE <<<
-    # To plug a real LLM into the script generator later, add a key here and
-    # read it from app/services/generation_service.py.
-    # anthropic_api_key: str = ""
+    # Gemini powers the script generator (multimodal: prompt + first-frame image).
+    # Get a key at https://aistudio.google.com; generation is disabled until set.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
 
     # --- Derived helpers ------------------------------------------------------
     @property

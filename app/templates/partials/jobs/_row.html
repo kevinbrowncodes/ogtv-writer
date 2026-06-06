@@ -1,9 +1,9 @@
 {#
-  One row in the job queue. Expects `job`.
+  One row in the job queue. Expects `job`. The prompt links to the job detail page.
 #}
 <tr class="align-top">
   <td class="px-5 py-3">
-    <span class="font-medium">{{ job.prompt_filename or job.prompt_slug }}</span>
+    <a href="/jobs/{{ job.id }}" class="font-medium hover:text-brand">{{ job.prompt_filename or job.prompt_slug }}</a>
     {% if job.addendum %}
       <span class="ml-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">+ addendum</span>
     {% endif %}

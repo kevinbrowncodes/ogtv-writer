@@ -1,80 +1,112 @@
-"""Unit tests for the script generator."""
+"""Unit tests for the Gemini generation service.
+
+The Gemini client is mocked at its boundary (``gemini_client.generate``), so these
+never make a live, paid API call.
+"""
 
 from __future__ import annotations
 
-from app.services import generation_service, script_service
+from pathlib import Path
+
+import pytest
+
+from app.config import get_settings
+from app.services import gemini_client, generation_service, job_service
+
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
 
 
-def test_summarize_strips_markdown():
-    summary = generation_service.summarize_prompt("# Scene\n- A lone athlete\n> sprints uphill")
-    assert "#" not in summary
-    assert ">" not in summary
-    assert "athlete" in summary
+@pytest.fixture(autouse=True)
+def _clear_settings_cache():
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
-def test_summarize_empty_has_fallback():
-    assert generation_service.summarize_prompt("   \n  ") == "your subject"
+# --- assemble_prompt ---------------------------------------------------------
+def test_assemble_prompt_injects_count():
+    out = generation_service.assemble_prompt("Make {{COUNT}} clips.", count=8, addendum="")
+    assert "Make 8 clips." in out
+    assert "{{COUNT}}" not in out
 
 
-def test_build_body_includes_master_prompt_and_structure():
-    body = generation_service.build_script_body(
-        subject="a lone athlete sprints uphill",
-        target_model="veo",
-        output_format="cinematic",
-        variation=1,
-        count=3,
-        title="Test v1",
-    )
-    assert "# Test v1" in body
-    assert "## Master prompt" in body
-    assert "## Structure" in body
-    assert "a lone athlete sprints uphill" in body
-    # Cinematic structure markers.
-    assert "Scene:" in body
-    assert "Camera:" in body
+def test_assemble_prompt_without_count_leaves_body():
+    out = generation_service.assemble_prompt("Review this.", count=None, addendum="")
+    assert "Review this." in out
 
 
-def test_build_body_fills_template_placeholders():
-    body = generation_service.build_script_body(
-        subject="gym hero",
-        target_model="wan",
-        output_format="short-form",
-        variation=1,
-        count=1,
-        title="T",
-        template_body="Subject is {subject} for {model}",
-    )
-    assert "Subject is gym hero for Wan" in body
-    assert "{subject}" not in body
+def test_assemble_prompt_appends_addendum():
+    out = generation_service.assemble_prompt("Body.", count=None, addendum="Make it spicy.")
+    assert "Additional details for this job" in out
+    assert "Make it spicy." in out
 
 
-def test_variations_differ(db):
-    scripts = generation_service.create_scripts(
-        db,
-        source_prompt="# Scene\nA lone athlete sprints up stadium stairs",
-        target_model="veo",
-        output_format="cinematic",
-        count=3,
-    )
-    assert len(scripts) == 3
-    assert all(s.status == "draft" for s in scripts)
-    assert all(s.target_model == "veo" for s in scripts)
-    # Each variation uses a different lens, so bodies are distinct.
-    bodies = {s.body for s in scripts}
-    assert len(bodies) == 3
-    # They were persisted.
-    assert script_service.count_scripts(db) == 3
+def test_assemble_prompt_includes_output_contract():
+    out = generation_service.assemble_prompt("Body.", count=None, addendum="")
+    assert "<<<SCRIPT" in out
 
 
-def test_create_scripts_stores_source_prompt(db):
-    source = "# Scene\nChalk and iron"
-    scripts = generation_service.create_scripts(
-        db,
-        source_prompt=source,
-        target_model="generic",
-        output_format="shot-list",
-        count=1,
-        tags="gym",
-    )
-    assert scripts[0].prompt_source == source.strip()
-    assert scripts[0].tags == "gym"
+# --- run_job -----------------------------------------------------------------
+def _running_job(db, tmp_path: Path, **kwargs):
+    img = tmp_path / "frame.png"
+    img.write_bytes(PNG)
+    defaults = {
+        "prompt_slug": "video-review-prompt",
+        "prompt_filename": "video-review-prompt.md",
+        "addendum": "",
+        "count": None,
+        "image_path": str(img),
+        "image_filename": "frame.png",
+    }
+    defaults.update(kwargs)
+    job = job_service.create_job(db, **defaults)
+    job.status = "running"
+    db.commit()
+    return job
+
+
+def test_run_job_stores_result(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    get_settings.cache_clear()
+    monkeypatch.setattr(gemini_client, "generate", lambda **kwargs: "GENERATED TEXT")
+
+    job = _running_job(db, tmp_path)
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "done"
+    assert job.result_raw == "GENERATED TEXT"
+    assert job.finished_at is not None
+    assert job.error == ""
+
+
+def test_run_job_marks_failed_on_client_error(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    get_settings.cache_clear()
+
+    def boom(**kwargs):
+        raise RuntimeError("api down")
+
+    monkeypatch.setattr(gemini_client, "generate", boom)
+
+    job = _running_job(db, tmp_path)
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "failed"
+    assert "api down" in job.error
+
+
+def test_run_job_without_api_key_fails_and_skips_client(db, tmp_path, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    get_settings.cache_clear()
+    called: dict[str, int] = {}
+    monkeypatch.setattr(gemini_client, "generate", lambda **kwargs: called.setdefault("hit", 1))
+
+    job = _running_job(db, tmp_path)
+    generation_service.run_job(db, job)
+
+    db.refresh(job)
+    assert job.status == "failed"
+    assert "GEMINI_API_KEY" in job.error
+    assert "hit" not in called  # never reached the client

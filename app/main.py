@@ -26,9 +26,10 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.logging_config import configure_logging
-from app.routes import generate, health, jobs, pages, prompt_catalog, pwa, scripts, tags
+from app.routes import health, jobs, pages, prompt_catalog, pwa, scripts, tags
 from app.routes import script_templates as script_templates_routes
 from app.routes import settings as settings_routes
+from app.services import job_worker
 from app.templating import templates
 
 log = logging.getLogger(__name__)
@@ -47,7 +48,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     log.info("Starting %s (env=%s)", settings.app_name, settings.environment)
     init_db()
+    # The background worker drains the generation queue. Never run it under tests
+    # (they call the worker's unit of work directly with the Gemini client mocked).
+    if not settings.is_testing:
+        job_worker.start()
     yield
+    if not settings.is_testing:
+        job_worker.stop()
     log.info("Shutting down %s", settings.app_name)
 
 
@@ -91,7 +98,6 @@ def _register_routers(app: FastAPI) -> None:
     # The prompt "inbox" (DB) is replaced by a file-based catalog (STORY_001). The old
     # app/routes/prompts.py + Prompt model/service/templates are removed in STORY_006.
     app.include_router(prompt_catalog.router)
-    app.include_router(generate.router)
     app.include_router(jobs.router)
     app.include_router(scripts.router)
     app.include_router(script_templates_routes.router)

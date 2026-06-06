@@ -16,11 +16,11 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse,
 from pydantic import ValidationError
 
 from app.dependencies import DbSession
-from app.domain import GENERATION_COUNTS, SCRIPT_STATUSES
+from app.domain import SCRIPT_STATUSES
 from app.models.script import Script
 from app.routes.common import field_errors
 from app.schemas.script import ScriptCreate, ScriptUpdate
-from app.services import generation_service, script_service
+from app.services import script_service
 from app.templating import flash, templates, toast_trigger
 
 router = APIRouter(tags=["scripts"])
@@ -199,33 +199,6 @@ def scripts_duplicate(request: Request, db: DbSession, script_id: int) -> Redire
     copy = script_service.duplicate_script(db, script)
     flash(request, "Script duplicated.", "success")
     return RedirectResponse(f"/scripts/{copy.id}", status_code=303)
-
-
-# --- Create variations -------------------------------------------------------
-@router.post("/scripts/{script_id}/variations")
-def scripts_variations(
-    request: Request,
-    db: DbSession,
-    script_id: int,
-    count: Annotated[int, Form()] = 3,
-) -> RedirectResponse:
-    script = _get_or_404(db, script_id)
-    if count not in GENERATION_COUNTS:
-        count = 3
-    source = script.prompt_source or script.body
-    scripts = generation_service.create_scripts(
-        db,
-        source_prompt=source,
-        target_model=script.target_model,
-        output_format=script.output_format,
-        count=count,
-        title_base=re.sub(r"\s+v\d+$", "", script.title).strip(),
-        tags=script.tags,
-    )
-    flash(
-        request, f"Created {len(scripts)} variation{'s' if len(scripts) != 1 else ''}.", "success"
-    )
-    return RedirectResponse("/scripts?status=draft", status_code=303)
 
 
 # --- Delete from the detail page (full-page redirect) ------------------------

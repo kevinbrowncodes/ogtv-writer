@@ -1,0 +1,32 @@
+{% extends "shell.html" %}
+{% block page_title %}Job #{{ job.id }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <a href="/jobs" class="text-sm text-brand hover:underline">← Queue</a>
+    <h1 class="mt-1 text-2xl font-semibold tracking-tight">Job #{{ job.id }}</h1>
+    <p class="text-sm text-muted">{{ job.prompt_filename or job.prompt_slug }}</p>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <section class="card p-5 lg:col-span-2">
+      {% include "partials/jobs/_status.html" %}
+    </section>
+
+    <aside class="card space-y-3 p-5 text-sm">
+      <h2 class="text-sm font-semibold">Details</h2>
+      <div class="flex justify-between gap-3"><dt class="text-muted">Prompt</dt><dd class="font-medium">{{ job.prompt_filename or job.prompt_slug }}</dd></div>
+      <div class="flex justify-between gap-3"><dt class="text-muted">Image</dt><dd>{{ job.image_filename }}</dd></div>
+      {% if job.count %}<div class="flex justify-between gap-3"><dt class="text-muted">Scripts</dt><dd>{{ job.count }}</dd></div>{% endif %}
+      <div class="flex justify-between gap-3"><dt class="text-muted">Created</dt><dd>{{ job.created_at.strftime("%b %d, %Y %H:%M") }}</dd></div>
+      {% if job.addendum %}
+      <div class="border-t border-border pt-3">
+        <dt class="text-xs uppercase tracking-wide text-muted">Addendum</dt>
+        <p class="mt-1 whitespace-pre-wrap text-content">{{ job.addendum }}</p>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

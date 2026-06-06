@@ -38,18 +38,6 @@ def test_browse_prompt_catalog(page: Page, live_server: str):
     expect(page.locator("#prompt-preview")).to_contain_text("Viral Video Strategist")
 
 
-def test_generate_scripts_flow(page: Page, live_server: str):
-    page.goto(f"{live_server}/generate")
-
-    page.fill("#source", "# Scene\nA lone athlete sprints up stadium stairs")
-    page.select_option("#count", "3")
-    page.get_by_role("button", name="Generate scripts").click()
-
-    # Lands on the library, filtered to the new drafts.
-    page.wait_for_url("**/scripts**")
-    expect(page.locator("#script-list")).to_be_visible()
-
-
 def test_library_shows_seeded_script(page: Page, live_server: str):
     page.goto(f"{live_server}/scripts")
     expect(page.locator("#script-list")).to_contain_text("Seeded script")
@@ -69,3 +57,8 @@ def test_submit_generation_job(page: Page, live_server: str):
     page.wait_for_url("**/jobs")
     expect(page.locator("#job-list")).to_contain_text("frame.png")
     expect(page.locator("#job-list")).to_contain_text("Queued")
+
+    # Opening the job shows its detail page with the live status block.
+    page.locator("#job-list a").first.click()
+    expect(page.get_by_role("heading", name="Job #")).to_be_visible()
+    expect(page.locator("#job-status")).to_contain_text("Queued")

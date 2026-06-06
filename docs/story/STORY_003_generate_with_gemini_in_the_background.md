@@ -1,6 +1,6 @@
 # STORY_003 — Generate with Gemini in the background
 
-> Epic: EPIC_001 · Status: Not started
+> Epic: EPIC_001 · Status: Done
 
 **As** the OnlyGainsTV operator, **I want** queued jobs to be sent to Gemini
 automatically in the background, **so that** I can submit a batch and walk away while my
@@ -15,18 +15,18 @@ the raw text.
 
 ## Acceptance Criteria
 
-- [ ] A queued job is picked up automatically, sent to **Gemini** with the assembled
+- [x] A queued job is picked up automatically, sent to **Gemini** with the assembled
       prompt **and the uploaded image**, and its raw text response + status are stored.
-- [ ] Status moves `queued → running → done` on success, or `→ failed` (with the error
+- [x] Status moves `queued → running → done` on success, or `→ failed` (with the error
       message saved) on failure; `started_at` / `finished_at` are recorded.
-- [ ] The **assembled prompt** = catalog prompt body, with `{{COUNT}}` replaced by the
+- [x] The **assembled prompt** = catalog prompt body, with `{{COUNT}}` replaced by the
       job's count (when present), the **addendum** appended under a clear delimiter, and a
       small app output-contract wrapper (prototype for STORY_004's parser).
-- [ ] The **queue and job-detail pages reflect status live** (HTMX polling) without a manual refresh.
-- [ ] **Tests never make a live Gemini call** — the client is mocked at the boundary.
-- [ ] With **no `GEMINI_API_KEY` set**, the app still starts; jobs fail fast with a clear
+- [x] The **queue and job-detail pages reflect status live** (HTMX polling) without a manual refresh.
+- [x] **Tests never make a live Gemini call** — the client is mocked at the boundary.
+- [x] With **no `GEMINI_API_KEY` set**, the app still starts; jobs fail fast with a clear
       "no API key configured" error rather than crashing the worker.
-- [ ] The old deterministic generator and the `/generate` page + `/scripts/{id}/variations`
+- [x] The old deterministic generator and the `/generate` page + `/scripts/{id}/variations`
       action are removed; the app, `ruff`, and `mypy` stay green afterward.
 
 ## Technical Notes

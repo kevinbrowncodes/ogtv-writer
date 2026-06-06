@@ -1,0 +1,27 @@
+{#
+  Live status block for the job detail page. Polls every 2s while queued/running,
+  then stops and reveals the raw result (or the error) once terminal.
+#}
+<div id="job-status"
+  {% if job.status in ("queued", "running") %}hx-get="/jobs/{{ job.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <div class="flex items-center gap-2">
+    {% set status = job.status %}{% include "partials/jobs/_status_badge.html" %}
+    {% if job.status in ("queued", "running") %}
+      <span class="text-xs text-muted">Working… this refreshes automatically.</span>
+    {% endif %}
+  </div>
+
+  {% if job.status == "failed" and job.error %}
+  <div class="mt-3 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+    {{ job.error }}
+  </div>
+  {% endif %}
+
+  {% if job.status == "done" %}
+  <div class="mt-4">
+    <h2 class="text-sm font-semibold">Raw response</h2>
+    <p class="mt-1 text-xs text-muted">Splitting this into individual scripts comes next (STORY_004).</p>
+    <pre class="mt-2 max-h-[60vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-surface-2 p-4 font-mono text-xs text-content">{{ job.result_raw }}</pre>
+  </div>
+  {% endif %}
+</div>

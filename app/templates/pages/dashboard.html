@@ -9,20 +9,13 @@
       <p class="text-sm text-muted">{{ settings.brand_name }} studio — your Writer workspace.</p>
     </div>
     <div class="flex gap-2">
-      {# Quick action: open the New Prompt modal (the shell provides #modal). #}
-      <button
-        type="button"
-        class="btn-secondary"
-        hx-get="/prompts/new"
-        hx-target="#modal"
-        hx-swap="innerHTML"
-      >
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        New prompt
-      </button>
-      <a href="/generate" class="btn-primary">
+      <a href="/prompts" class="btn-secondary">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5h7.5m-7.5 3.75h4.5M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v8.25A2.25 2.25 0 0118 16.5h-5.69l-3.81 3.563V16.5H6A2.25 2.25 0 013.75 14.25V6z"/></svg>
+        Prompts
+      </a>
+      <a href="/jobs/new" class="btn-primary">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>
-        Generate scripts
+        New job
       </a>
     </div>
   </div>
@@ -51,7 +44,7 @@
         </li>
         {% else %}
         <li class="px-5 py-10 text-center text-sm text-muted">
-          No scripts yet. <a href="/generate" class="text-brand hover:underline">Generate your first batch</a>.
+          No scripts yet. <a href="/jobs/new" class="text-brand hover:underline">Queue your first job</a>.
         </li>
         {% endfor %}
       </ul>
@@ -63,11 +56,11 @@
       <ol class="mt-4 space-y-3 text-sm">
         <li class="flex gap-3">
           <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand">1</span>
-          <span><a href="/prompts" class="text-brand hover:underline">Drop a prompt</a> into the inbox.</span>
+          <span><a href="/prompts" class="text-brand hover:underline">Pick a prompt</a> from your library.</span>
         </li>
         <li class="flex gap-3">
           <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand">2</span>
-          <span><a href="/generate" class="text-brand hover:underline">Generate</a> 1–10 script variations.</span>
+          <span><a href="/jobs/new" class="text-brand hover:underline">Queue a job</a> — prompt + first-frame image.</span>
         </li>
         <li class="flex gap-3">
           <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand">3</span>

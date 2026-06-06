@@ -24,7 +24,6 @@ from app.schemas.script import ScriptCreate  # noqa: E402
 from app.schemas.script_template import ScriptTemplateCreate  # noqa: E402
 from app.schemas.tag import TagCreate  # noqa: E402
 from app.services import (  # noqa: E402
-    generation_service,
     prompt_service,
     script_service,
     script_template_service,
@@ -149,15 +148,17 @@ def main() -> None:
 
         # --- Scripts ----------------------------------------------------------
         if script_service.count_scripts(db) == 0:
-            # A generated batch (drafts) from the first prompt...
-            generation_service.create_scripts(
+            # A draft from the first prompt...
+            script_service.create_script(
                 db,
-                source_prompt=SAMPLE_PROMPTS[0].body,
-                target_model="veo",
-                output_format="cinematic",
-                count=3,
-                title_base="Sunrise stairs",
-                tags="gym, sunrise, cinematic",
+                ScriptCreate(
+                    title="Sunrise stairs — cinematic v1",
+                    body="# Sunrise stairs\n\nHook: breath in cold air. Build: the climb. Payoff: skyline.",
+                    status="draft",
+                    target_model="veo",
+                    output_format="cinematic",
+                    tags="gym, sunrise, cinematic",
+                ),
             )
             # ...plus a couple in later lifecycle states for the dashboard.
             script_service.create_script(

@@ -98,16 +98,6 @@ def test_duplicate_redirects_to_copy(client, db):
     assert script_service.count_scripts(db) == 2
 
 
-def test_variations_creates_drafts(client, db):
-    script = _make(db, body="# Scene\nathlete", target_model="veo", output_format="cinematic")
-    resp = client.post(
-        f"/scripts/{script.id}/variations", data={"count": 3}, follow_redirects=False
-    )
-    assert resp.status_code == 303
-    db.expunge_all()
-    assert script_service.count_scripts(db) == 4  # original + 3
-
-
 def test_delete_via_htmx_refreshes_list(client, db):
     script = _make(db, title="Delete me")
     resp = client.request("DELETE", f"/scripts/{script.id}", headers=HX)
