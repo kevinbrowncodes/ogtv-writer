@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from app.config import get_settings
@@ -62,3 +64,27 @@ def test_run_all_queues_pending_only(client, db):
     jobs = job_service.list_jobs(db)
     assert len(jobs) == 1  # only 26-orange (pending); 26-brown is done → skipped
     assert jobs[0].source_dir == "only-gains-tv/26-orange"
+
+
+def test_dashboard_lists_nested_shoot_and_runs_it(client, db):
+    # A date-grouped channel: youtube/26-06-07/26-06-07-0000/01.jpeg (BUG_001 / STORY_013).
+    root = Path(get_settings().source_root)
+    nested = root / "youtube" / "26-06-07" / "26-06-07-0000"
+    nested.mkdir(parents=True)
+    (nested / "01.jpeg").write_bytes(b"img")
+
+    page = client.get("/shoots")
+    assert page.status_code == 200
+    assert "youtube" in page.text
+    assert "26-06-07-0000" in page.text  # nested shoot is listed
+    assert "youtube/26-06-07/26-06-07-0000" in page.text  # Run carries its full rel path
+
+    resp = client.post(
+        "/shoots/run",
+        data={"source_dir": "youtube/26-06-07/26-06-07-0000", "prompt_slug": VEO},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    job = job_service.list_jobs(db)[0]
+    assert job.source_dir == "youtube/26-06-07/26-06-07-0000"
+    assert job.image_filename == "01.jpeg"

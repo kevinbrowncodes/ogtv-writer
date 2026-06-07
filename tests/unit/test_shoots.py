@@ -76,6 +76,61 @@ def test_list_by_channel_groups_and_classifies_status(source_root):
     assert by_channel["youtube"][0].status == "pending"
 
 
+def _make_nested_shoot(root: Path, *parts: str, frame: str | None = "01.jpeg") -> Path:
+    """Create a shoot at an arbitrary depth, e.g. youtube/26-06-07/26-06-07-0000/."""
+    d = root.joinpath(*parts)
+    d.mkdir(parents=True)
+    if frame:
+        (d / frame).write_bytes(b"img")
+    return d
+
+
+def test_nested_shoots_discovered_under_grouping_folder(source_root):
+    # Flat channel + date-grouped channel coexist in one tree.
+    _make_shoot(source_root, "only-gains-tv", "26-brown", "01.jpg")  # flat, depth 1
+    _make_nested_shoot(source_root, "youtube", "26-06-07", "26-06-07-0000")  # grouped, depth 2
+    _make_nested_shoot(source_root, "youtube", "26-06-07", "26-06-07-0400")
+
+    rels = {s.rel_dir for s in shoots.list_shoots()}
+    assert "only-gains-tv/26-brown" in rels  # flat layout still works
+    assert "youtube/26-06-07/26-06-07-0000" in rels  # nested shoot found
+    assert "youtube/26-06-07/26-06-07-0400" in rels
+    assert "youtube/26-06-07" not in rels  # the date folder is not itself a shoot
+
+    nested = next(s for s in shoots.list_shoots() if s.name == "26-06-07-0000")
+    assert nested.channel == "youtube"  # channel = top-level folder, not the date
+    assert nested.frame == "01.jpeg"
+
+
+def test_list_by_channel_groups_nested_shoots_under_channel(source_root):
+    done = _make_nested_shoot(source_root, "youtube", "26-06-07", "26-06-07-0000")
+    (done / "script.txt").write_text("x")  # has a script → done
+    _make_nested_shoot(source_root, "youtube", "26-06-07", "26-06-07-0400")  # frame → pending
+    _make_nested_shoot(  # no frame → no_frame
+        source_root, "youtube", "26-06-07", "26-06-07-0800", frame=None
+    )
+
+    by_channel = shoots.list_by_channel()
+
+    assert set(by_channel) == {"youtube"}  # grouped under the channel, not the date
+    statuses = {s.name: s.status for s in by_channel["youtube"]}
+    assert statuses == {
+        "26-06-07-0000": "done",
+        "26-06-07-0400": "pending",
+        "26-06-07-0800": "no_frame",
+    }
+
+
+def test_resolve_handles_nested_rel_dir_rejects_grouping_folder(source_root):
+    _make_nested_shoot(source_root, "youtube", "26-06-07", "26-06-07-0000")
+
+    shoot = shoots.resolve("youtube/26-06-07/26-06-07-0000")
+    assert shoot is not None
+    assert shoot.channel == "youtube"
+    assert shoot.frame == "01.jpeg"
+    assert shoots.resolve("youtube/26-06-07") is None  # date folder has no 01.* frame
+
+
 def test_write_outputs_single_then_multi(source_root):
     d = _make_shoot(source_root, "ch", "s", "01.jpg")
 
