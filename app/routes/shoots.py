@@ -19,6 +19,8 @@ from app.templating import flash, templates
 
 router = APIRouter(tags=["shoots"])
 
+MAX_ADDENDUM = 20000  # mirrors the JobCreate.addendum bound in app/schemas/job.py
+
 
 def _queue_state(db: DbSession) -> dict:
     """Running/queued counts + whether the dashboard should keep polling."""
@@ -54,7 +56,7 @@ def shoots_list(request: Request, db: DbSession) -> HTMLResponse:
 
 
 def _queue_shoot(
-    db: DbSession, *, rel_dir: str, prompt_slug: str, model: str, count: str
+    db: DbSession, *, rel_dir: str, prompt_slug: str, model: str, count: str, addendum: str = ""
 ) -> str | None:
     """Create a folder job for one shoot. Returns an error message, or None on success."""
     shoot = shoots.resolve(rel_dir)
@@ -63,6 +65,8 @@ def _queue_shoot(
     prompt = prompt_catalog.get_prompt(prompt_slug)
     if prompt is None:
         return "Pick a valid prompt."
+    if len(addendum) > MAX_ADDENDUM:
+        return f"Additional context is too long (max {MAX_ADDENDUM} characters)."
     parsed_count: int | None = None
     if prompt.has_count:
         if count.strip().isdigit() and int(count) >= 1:
@@ -75,7 +79,7 @@ def _queue_shoot(
         db,
         prompt_slug=prompt.slug,
         prompt_filename=prompt.filename,
-        addendum="",
+        addendum=addendum.strip(),
         count=parsed_count,
         image_path=shoots.frame_abspath(shoot),
         image_filename=shoot.frame or "",
@@ -83,6 +87,33 @@ def _queue_shoot(
         source_dir=shoot.rel_dir,
     )
     return None
+
+
+@router.get("/shoots/context", response_class=HTMLResponse)
+def shoots_context(
+    request: Request,
+    source_dir: str = "",
+    prompt_slug: str = "",
+    model: str = "",
+    count: str = "",
+) -> HTMLResponse:
+    """The per-shoot 'run with extra context' dialog (loaded into #modal by + Context).
+
+    Carries the picker's current prompt/model/count (sent via hx-include) into the form
+    so the contextual run honours the same selections.
+    """
+    return templates.TemplateResponse(
+        request,
+        "partials/shoots/_context_modal.html",
+        {
+            "shoot": shoots.resolve(source_dir),
+            "source_dir": source_dir,
+            "prompt": prompt_catalog.get_prompt(prompt_slug) if prompt_slug else None,
+            "prompt_slug": prompt_slug,
+            "model": model or get_settings().gemini_model,
+            "count": count,
+        },
+    )
 
 
 @router.post("/shoots/run")
@@ -93,8 +124,16 @@ def shoots_run(
     prompt_slug: Annotated[str, Form()] = "",
     model: Annotated[str, Form()] = "",
     count: Annotated[str, Form()] = "",
+    addendum: Annotated[str, Form()] = "",
 ) -> RedirectResponse:
-    error = _queue_shoot(db, rel_dir=source_dir, prompt_slug=prompt_slug, model=model, count=count)
+    error = _queue_shoot(
+        db,
+        rel_dir=source_dir,
+        prompt_slug=prompt_slug,
+        model=model,
+        count=count,
+        addendum=addendum,
+    )
     flash(request, error or "Job queued.", "danger" if error else "success")
     return RedirectResponse("/shoots", status_code=303)
 

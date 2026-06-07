@@ -34,10 +34,20 @@
             <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ styles[s.status] }}">{{ labels[s.status] }}</span>
           </td>
           <td class="px-5 py-3 text-right">
-            {% if s.status == "pending" %}
-            <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-primary px-2.5 py-1 text-xs">Run</button>
-            {% elif s.status == "done" %}
-            <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-ghost px-2.5 py-1 text-xs">Re-run</button>
+            {% if s.status in ("pending", "done") %}
+            <div class="inline-flex items-center justify-end gap-1">
+              {# type="button" so it never submits the shared run form; hx-include carries the picker's prompt/model/count into the modal. #}
+              <button type="button" class="btn-ghost px-2 py-1 text-xs"
+                hx-get="/shoots/context"
+                hx-vals='{"source_dir": "{{ s.rel_dir }}"}'
+                hx-include="[name='prompt_slug'],[name='model'],[name='count']"
+                hx-target="#modal" hx-swap="innerHTML">+ Context</button>
+              {% if s.status == "pending" %}
+              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-primary px-2.5 py-1 text-xs">Run</button>
+              {% else %}
+              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-ghost px-2.5 py-1 text-xs">Re-run</button>
+              {% endif %}
+            </div>
             {% else %}
             <span class="text-xs text-muted">needs 01.*</span>
             {% endif %}
