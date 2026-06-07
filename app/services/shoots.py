@@ -25,6 +25,9 @@ from app.services.uploads import PROJECT_ROOT
 _FRAME_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 
 
+_CONTEXT_FILE = "context.txt"  # saved per-shoot prompt addendum; reused on every run
+
+
 @dataclass(frozen=True)
 class Shoot:
     rel_dir: str  # relative to SOURCE_ROOT, e.g. "only-gains-tv/26-06-07-0100_brown"
@@ -32,6 +35,7 @@ class Shoot:
     name: str
     frame: str | None  # "01.jpg" etc., or None when the folder has no 01.* frame
     status: str  # "done" (has a script), "pending" (frame, no script), or "no_frame"
+    context: str  # saved extra prompt context (from context.txt), or "" when none
 
 
 def _root() -> Path:
@@ -48,6 +52,11 @@ def _find_frame(directory: Path) -> str | None:
 
 def _has_script(directory: Path) -> bool:
     return any(directory.glob("script*.txt"))
+
+
+def _read_context(directory: Path) -> str:
+    path = directory / _CONTEXT_FILE
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
 def _shoot_dirs(channel_dir: Path) -> Iterator[Path]:
@@ -76,7 +85,7 @@ def _shoot(shoot_dir: Path) -> Shoot:
         status = "pending"
     else:
         status = "no_frame"
-    return Shoot(rel, channel, shoot_dir.name, frame, status)
+    return Shoot(rel, channel, shoot_dir.name, frame, status, _read_context(shoot_dir))
 
 
 def list_shoots() -> list[Shoot]:
@@ -122,6 +131,22 @@ def resolve(rel_dir: str) -> Shoot | None:
 
 def frame_abspath(shoot: Shoot) -> str:
     return str((_root() / shoot.rel_dir / (shoot.frame or "")).resolve())
+
+
+def write_context(rel_dir: str, text: str) -> bool:
+    """Save (or, when blank, clear) a shoot's extra prompt context. Path-safe.
+
+    Returns False when the shoot doesn't resolve (bad path / no frame); otherwise writes
+    ``context.txt`` into the folder, or deletes it when ``text`` is empty.
+    """
+    if resolve(rel_dir) is None:
+        return False
+    path = (_root() / rel_dir).resolve() / _CONTEXT_FILE
+    if text.strip():
+        path.write_text(text, encoding="utf-8")
+    elif path.exists():
+        path.unlink()
+    return True
 
 
 def write_outputs(rel_dir: str, scripts: list[str], titles: list[str], summary: str) -> list[str]:

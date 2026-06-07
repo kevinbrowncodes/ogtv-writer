@@ -1,40 +1,35 @@
 {#
-  Per-shoot "run with extra context" dialog. Loaded into #modal by the + Context
-  button on a shoot row, which hx-includes the picker's prompt/model/count. It is a
-  plain (non-HTMX) form: submitting POSTs to /shoots/run with a one-time addendum and
-  full-page-redirects back to the dashboard with a flash, which also closes the modal.
-  The overlay / Cancel use the shared [data-modal-close] handler (also Escape).
-  Expects: shoot, source_dir, prompt, prompt_slug, model, count.
+  Per-shoot context editor. Loaded into #modal by the +/✎ Context button on a shoot
+  row. Saving (hx-post /shoots/context) writes the note to the shoot's context.txt and
+  responds by re-rendering #shoots-list (with the badge) plus an out-of-band clear of
+  #modal — see _context_saved.html. The note is reused as the addendum on every run of
+  this shoot. Overlay / Cancel use the shared [data-modal-close] handler (also Escape).
+  Expects: shoot, source_dir.
 #}
 <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
   <div class="absolute inset-0 bg-black/50" data-modal-close></div>
   <div class="card relative z-10 w-full max-w-lg p-5">
     {% if not shoot %}
     <h2 class="text-lg font-semibold">Shoot not found</h2>
-    <p class="mt-1 text-sm text-muted">That shoot no longer has an <code class="rounded bg-surface-2 px-1">01.*</code> frame to run.</p>
+    <p class="mt-1 text-sm text-muted">That shoot no longer has an <code class="rounded bg-surface-2 px-1">01.*</code> frame.</p>
     <div class="mt-4 text-right">
       <button type="button" class="btn-secondary" data-modal-close>Close</button>
     </div>
     {% else %}
-    <h2 class="text-lg font-semibold">Add context — {{ shoot.name }}</h2>
+    <h2 class="text-lg font-semibold">Context — {{ shoot.name }}</h2>
     <p class="mt-1 text-sm text-muted">
-      Runs this one shoot now with
-      {% if prompt %}<span class="font-medium text-content">{{ prompt.title }}</span>{% else %}<span class="text-danger">no prompt selected</span>{% endif %}
-      on <span class="font-medium text-content">{{ model }}</span>. The note below is added to the prompt for this run only.
+      Saved with this shoot and added to the prompt every time you run it. Leave blank to clear.
     </p>
-    <form method="post" action="/shoots/run" class="mt-4 space-y-3">
+    <form hx-post="/shoots/context" hx-target="#shoots-list" hx-swap="outerHTML" class="mt-4 space-y-3">
       <input type="hidden" name="source_dir" value="{{ source_dir }}" />
-      <input type="hidden" name="prompt_slug" value="{{ prompt_slug }}" />
-      <input type="hidden" name="model" value="{{ model }}" />
-      <input type="hidden" name="count" value="{{ count }}" />
       <div>
-        <label class="label" for="ctx-addendum">Additional context <span class="text-muted">(optional)</span></label>
-        <textarea id="ctx-addendum" name="addendum" rows="5" class="input"
-          placeholder="Extra details for just this run…"></textarea>
+        <label class="label" for="ctx-addendum">Additional context</label>
+        <textarea id="ctx-addendum" name="addendum" rows="5" maxlength="20000" class="input"
+          placeholder="Extra details for this shoot…">{{ shoot.context }}</textarea>
       </div>
       <div class="flex justify-end gap-2">
         <button type="button" class="btn-secondary" data-modal-close>Cancel</button>
-        <button type="submit" class="btn-primary">Run with context</button>
+        <button type="submit" class="btn-primary">Save</button>
       </div>
     </form>
     {% endif %}

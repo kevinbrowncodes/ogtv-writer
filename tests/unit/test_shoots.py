@@ -131,6 +131,34 @@ def test_resolve_handles_nested_rel_dir_rejects_grouping_folder(source_root):
     assert shoots.resolve("youtube/26-06-07") is None  # date folder has no 01.* frame
 
 
+def test_write_context_saves_reads_and_clears(source_root):
+    _make_shoot(source_root, "ch", "s", "01.jpg")
+
+    assert shoots.resolve("ch/s").context == ""  # none yet
+
+    assert shoots.write_context("ch/s", "Make it spicy.") is True
+    assert (source_root / "ch" / "s" / "context.txt").read_text() == "Make it spicy."
+    assert shoots.resolve("ch/s").context == "Make it spicy."  # carried on the Shoot
+
+    # Saving blank removes the file (clears the context).
+    assert shoots.write_context("ch/s", "   ") is True
+    assert not (source_root / "ch" / "s" / "context.txt").exists()
+    assert shoots.resolve("ch/s").context == ""
+
+
+def test_write_context_rejects_frameless_and_traversal(source_root):
+    (source_root / "ch" / "noframe").mkdir(parents=True)
+    assert shoots.write_context("ch/noframe", "x") is False  # no 01.* frame
+    assert shoots.write_context("../escape", "x") is False  # traversal
+    assert shoots.write_context("", "x") is False
+
+
+def test_context_file_does_not_change_status(source_root):
+    _make_shoot(source_root, "ch", "s", "01.jpg")
+    shoots.write_context("ch/s", "note")  # context.txt is not a script
+    assert shoots.resolve("ch/s").status == "pending"  # still pending, not "done"
+
+
 def test_write_outputs_single_then_multi(source_root):
     d = _make_shoot(source_root, "ch", "s", "01.jpg")
 

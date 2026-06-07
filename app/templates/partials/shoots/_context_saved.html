@@ -1,0 +1,8 @@
+{#
+  Response to saving per-shoot context. The first element re-renders #shoots-list (so
+  the context badge appears/updates); the trailing out-of-band element clears #modal,
+  closing the editor. A toast is sent via the HX-Trigger header on the response.
+  Expects: channels, active, running, queued (same as _list.html).
+#}
+{% include "partials/shoots/_list.html" %}
+<div id="modal" hx-swap-oob="true"></div>

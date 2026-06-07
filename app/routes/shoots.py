@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app.config import get_settings
 from app.dependencies import DbSession
 from app.services import generation_service, job_service, prompt_catalog, shoots
-from app.templating import flash, templates
+from app.templating import flash, templates, toast_trigger
 
 router = APIRouter(tags=["shoots"])
 
@@ -56,17 +56,18 @@ def shoots_list(request: Request, db: DbSession) -> HTMLResponse:
 
 
 def _queue_shoot(
-    db: DbSession, *, rel_dir: str, prompt_slug: str, model: str, count: str, addendum: str = ""
+    db: DbSession, *, rel_dir: str, prompt_slug: str, model: str, count: str
 ) -> str | None:
-    """Create a folder job for one shoot. Returns an error message, or None on success."""
+    """Create a folder job for one shoot. Returns an error message, or None on success.
+
+    The shoot's saved context (context.txt) is reused as the job addendum.
+    """
     shoot = shoots.resolve(rel_dir)
     if shoot is None:
         return f"'{rel_dir}' has no 01.* frame to run."
     prompt = prompt_catalog.get_prompt(prompt_slug)
     if prompt is None:
         return "Pick a valid prompt."
-    if len(addendum) > MAX_ADDENDUM:
-        return f"Additional context is too long (max {MAX_ADDENDUM} characters)."
     parsed_count: int | None = None
     if prompt.has_count:
         if count.strip().isdigit() and int(count) >= 1:
@@ -79,7 +80,7 @@ def _queue_shoot(
         db,
         prompt_slug=prompt.slug,
         prompt_filename=prompt.filename,
-        addendum=addendum.strip(),
+        addendum=shoot.context.strip(),
         count=parsed_count,
         image_path=shoots.frame_abspath(shoot),
         image_filename=shoot.frame or "",
@@ -90,29 +91,37 @@ def _queue_shoot(
 
 
 @router.get("/shoots/context", response_class=HTMLResponse)
-def shoots_context(
-    request: Request,
-    source_dir: str = "",
-    prompt_slug: str = "",
-    model: str = "",
-    count: str = "",
-) -> HTMLResponse:
-    """The per-shoot 'run with extra context' dialog (loaded into #modal by + Context).
-
-    Carries the picker's current prompt/model/count (sent via hx-include) into the form
-    so the contextual run honours the same selections.
-    """
+def shoots_context(request: Request, source_dir: str = "") -> HTMLResponse:
+    """The per-shoot context editor (loaded into #modal by the +/✎ Context button)."""
     return templates.TemplateResponse(
         request,
         "partials/shoots/_context_modal.html",
-        {
-            "shoot": shoots.resolve(source_dir),
-            "source_dir": source_dir,
-            "prompt": prompt_catalog.get_prompt(prompt_slug) if prompt_slug else None,
-            "prompt_slug": prompt_slug,
-            "model": model or get_settings().gemini_model,
-            "count": count,
-        },
+        {"shoot": shoots.resolve(source_dir), "source_dir": source_dir},
+    )
+
+
+@router.post("/shoots/context", response_class=HTMLResponse)
+def shoots_save_context(
+    request: Request,
+    db: DbSession,
+    source_dir: Annotated[str, Form()] = "",
+    addendum: Annotated[str, Form()] = "",
+) -> HTMLResponse:
+    """Save (or clear) a shoot's context, then re-render the list and close the modal."""
+    if len(addendum) > MAX_ADDENDUM:
+        message, category = f"Context is too long (max {MAX_ADDENDUM} characters).", "danger"
+    elif not shoots.write_context(source_dir, addendum):
+        message, category = f"'{source_dir}' has no 01.* frame.", "danger"
+    else:
+        message, category = (
+            ("Context cleared." if not addendum.strip() else "Context saved."),
+            "success",
+        )
+    return templates.TemplateResponse(
+        request,
+        "partials/shoots/_context_saved.html",
+        {"channels": shoots.list_by_channel(), **_queue_state(db)},
+        headers=toast_trigger(message, category),
     )
 
 
@@ -124,16 +133,8 @@ def shoots_run(
     prompt_slug: Annotated[str, Form()] = "",
     model: Annotated[str, Form()] = "",
     count: Annotated[str, Form()] = "",
-    addendum: Annotated[str, Form()] = "",
 ) -> RedirectResponse:
-    error = _queue_shoot(
-        db,
-        rel_dir=source_dir,
-        prompt_slug=prompt_slug,
-        model=model,
-        count=count,
-        addendum=addendum,
-    )
+    error = _queue_shoot(db, rel_dir=source_dir, prompt_slug=prompt_slug, model=model, count=count)
     flash(request, error or "Job queued.", "danger" if error else "success")
     return RedirectResponse("/shoots", status_code=303)
 

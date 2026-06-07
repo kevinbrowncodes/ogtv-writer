@@ -8,7 +8,7 @@ import pytest
 
 from app.config import get_settings
 from app.routes.shoots import MAX_ADDENDUM
-from app.services import job_service
+from app.services import job_service, shoots
 
 VEO = "video-review-prompt"  # fixture prompt (no {{COUNT}})
 
@@ -74,46 +74,67 @@ def test_rows_show_context_button(client):
     assert 'hx-get="/shoots/context"' in resp.text
 
 
-def test_context_modal_renders_for_a_shoot(client):
-    resp = client.get(
+def test_context_modal_renders_prefilled(client):
+    # Save a note first, then the editor should reopen pre-filled with it.
+    client.post(
         "/shoots/context",
-        params={"source_dir": "only-gains-tv/26-orange", "prompt_slug": VEO, "model": "m1"},
+        data={"source_dir": "only-gains-tv/26-orange", "addendum": "Saved note here."},
     )
+    resp = client.get("/shoots/context", params={"source_dir": "only-gains-tv/26-orange"})
     assert resp.status_code == 200
     assert 'name="addendum"' in resp.text  # the context textarea
     assert 'name="source_dir"' in resp.text and "only-gains-tv/26-orange" in resp.text
     assert "26-orange" in resp.text  # which shoot
-    assert "Run with context" in resp.text
+    assert "Saved note here." in resp.text  # pre-filled
+    assert "Save" in resp.text
 
 
-def test_run_persists_addendum_on_the_job(client, db):
+def test_save_context_persists_and_closes_modal(client):
+    resp = client.post(
+        "/shoots/context",
+        data={"source_dir": "only-gains-tv/26-orange", "addendum": "Make it spicy."},
+    )
+    assert resp.status_code == 200
+    assert 'id="modal" hx-swap-oob="true"' in resp.text  # OOB clears the modal
+    assert "✎ Context" in resp.text  # the row now shows the edit/has-context state
+    # It really persisted on the shoot:
+    assert shoots.resolve("only-gains-tv/26-orange").context == "Make it spicy."
+
+
+def test_save_empty_context_clears_it(client):
+    client.post(
+        "/shoots/context",
+        data={"source_dir": "only-gains-tv/26-orange", "addendum": "temporary"},
+    )
+    client.post(
+        "/shoots/context", data={"source_dir": "only-gains-tv/26-orange", "addendum": "   "}
+    )
+    assert shoots.resolve("only-gains-tv/26-orange").context == ""
+
+
+def test_save_context_rejects_overlong(client):
+    resp = client.post(
+        "/shoots/context",
+        data={"source_dir": "only-gains-tv/26-orange", "addendum": "x" * (MAX_ADDENDUM + 1)},
+    )
+    assert resp.status_code == 200
+    assert shoots.resolve("only-gains-tv/26-orange").context == ""  # nothing saved
+
+
+def test_run_uses_saved_context_as_addendum(client, db):
+    client.post(
+        "/shoots/context",
+        data={"source_dir": "only-gains-tv/26-orange", "addendum": "  Make it extra spicy.  "},
+    )
     resp = client.post(
         "/shoots/run",
-        data={
-            "source_dir": "only-gains-tv/26-orange",
-            "prompt_slug": VEO,
-            "addendum": "  Make it extra spicy.  ",
-        },
+        data={"source_dir": "only-gains-tv/26-orange", "prompt_slug": VEO},
         follow_redirects=False,
     )
     assert resp.status_code == 303
     job = job_service.list_jobs(db)[0]
     assert job.source_dir == "only-gains-tv/26-orange"
-    assert job.addendum == "Make it extra spicy."  # threaded through + stripped
-
-
-def test_run_rejects_overlong_addendum(client, db):
-    resp = client.post(
-        "/shoots/run",
-        data={
-            "source_dir": "only-gains-tv/26-orange",
-            "prompt_slug": VEO,
-            "addendum": "x" * (MAX_ADDENDUM + 1),
-        },
-        follow_redirects=False,
-    )
-    assert resp.status_code == 303  # flashes an error, redirects
-    assert job_service.count_jobs(db) == 0  # nothing queued
+    assert job.addendum == "Make it extra spicy."  # from the saved note, stripped
 
 
 def test_dashboard_lists_nested_shoot_and_runs_it(client, db):

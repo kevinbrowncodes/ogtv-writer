@@ -28,7 +28,10 @@
       <tbody class="divide-y divide-border">
         {% for s in shoot_list %}
         <tr class="align-middle">
-          <td class="px-5 py-3 font-medium">{{ s.name }}</td>
+          <td class="px-5 py-3 font-medium">
+            {{ s.name }}
+            {% if s.context %}<span class="ml-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">context</span>{% endif %}
+          </td>
           <td class="hidden px-5 py-3 text-muted md:table-cell">{{ s.frame or "—" }}</td>
           <td class="px-5 py-3">
             <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ styles[s.status] }}">{{ labels[s.status] }}</span>
@@ -36,12 +39,11 @@
           <td class="px-5 py-3 text-right">
             {% if s.status in ("pending", "done") %}
             <div class="inline-flex items-center justify-end gap-1">
-              {# type="button" so it never submits the shared run form; hx-include carries the picker's prompt/model/count into the modal. #}
+              {# type="button" so it never submits the shared run form; opens the per-shoot context editor in #modal. #}
               <button type="button" class="btn-ghost px-2 py-1 text-xs"
                 hx-get="/shoots/context"
                 hx-vals='{"source_dir": "{{ s.rel_dir }}"}'
-                hx-include="[name='prompt_slug'],[name='model'],[name='count']"
-                hx-target="#modal" hx-swap="innerHTML">+ Context</button>
+                hx-target="#modal" hx-swap="innerHTML">{{ "✎ Context" if s.context else "+ Context" }}</button>
               {% if s.status == "pending" %}
               <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-primary px-2.5 py-1 text-xs">Run</button>
               {% else %}
