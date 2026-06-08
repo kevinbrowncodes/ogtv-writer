@@ -1,0 +1,8 @@
+{#
+  Response for GET /shoots/list: the channel tables that swap into #shoots-list, plus
+  the Date <select> re-rendered out-of-band so switching channels updates its options
+  to the chosen channel's dates (STORY_017).
+  Expects: everything _list.html + _date_filter.html need (from _list_context()).
+#}
+{% include "partials/shoots/_list.html" %}
+{% with oob = true %}{% include "partials/shoots/_date_filter.html" %}{% endwith %}

@@ -198,20 +198,21 @@ def test_list_by_channel_excludes_configured_channels(source_root, monkeypatch):
     assert set(by_channel) == {"only-gains-tv", "youtube"}  # wip hidden entirely
 
 
-def test_recent_dates_window_dedupes_and_sorts_newest_first():
+def test_recent_dates_includes_future_dedupes_and_sorts_newest_first():
     today = date(2026, 6, 8)
     by_channel = {
         "only-gains-tv": [
+            _shoot("only-gains-tv/26-06-09-0100", date="26-06-09"),  # future → kept, at top
             _shoot("only-gains-tv/26-06-08-0100", date="26-06-08"),
             _shoot("only-gains-tv/26-06-07-0100", date="26-06-07"),
             _shoot("only-gains-tv/26-05-30-0100", date="26-05-30"),  # 9 days ago → out
-            _shoot("only-gains-tv/26-06-09-0100", date="26-06-09"),  # future → out
             _shoot("only-gains-tv/no-date", date=""),  # no date → ignored
         ],
         "youtube": [_shoot("youtube/26-06-07-0000", date="26-06-07")],  # dup date across channels
     }
 
-    assert shoots.recent_dates(by_channel, today=today) == ["26-06-08", "26-06-07"]
+    # Future dates pass (newest-first), the >7-day-old date is dropped, dups collapse.
+    assert shoots.recent_dates(by_channel, today=today) == ["26-06-09", "26-06-08", "26-06-07"]
 
 
 def test_filter_shoots_by_channel_date_both_and_all():

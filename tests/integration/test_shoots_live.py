@@ -43,7 +43,9 @@ def test_shoots_list_polls_and_shows_activity_while_active(client, db):
     _queue_a_job(db)  # one queued job → dashboard should keep refreshing
     resp = client.get("/shoots/list")
     assert resp.status_code == 200
-    assert 'hx-get="/shoots/list"' in resp.text  # polling armed
+    # The 3s poll is the real refresh signal (hx-get="/shoots/list" also appears on the
+    # filter selects, so assert on the poll trigger specifically).
+    assert 'hx-trigger="every 3s"' in resp.text  # polling armed
     assert "auto-refreshing" in resp.text  # activity line visible
     assert "1 queued" in resp.text
 
@@ -51,7 +53,7 @@ def test_shoots_list_polls_and_shows_activity_while_active(client, db):
 def test_shoots_list_idle_does_not_poll(client):
     resp = client.get("/shoots/list")
     assert resp.status_code == 200
-    assert 'hx-get="/shoots/list"' not in resp.text  # no jobs → no polling
+    assert 'hx-trigger="every 3s"' not in resp.text  # no jobs → no polling
     assert "auto-refreshing" not in resp.text
 
 

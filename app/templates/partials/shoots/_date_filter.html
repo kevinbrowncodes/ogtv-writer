@@ -1,0 +1,13 @@
+{#
+  The Date filter <select>. Used two ways:
+   - inline in the picker (pages/shoots.html), with no `oob`;
+   - in the /shoots/list response with `oob=true`, so an HTMX channel change rebuilds
+     its options out-of-band (the date options follow the selected channel, STORY_017).
+  Expects: date_options, selected_date (+ optional oob).
+#}
+<select id="shoot-date-filter" name="date" class="input"{% if oob %} hx-swap-oob="true"{% endif %}
+  hx-get="/shoots/list" hx-target="#shoots-list" hx-swap="outerHTML" hx-trigger="change"
+  hx-include="#shoot-channel-filter, #shoot-date-filter">
+  <option value="">All dates</option>
+  {% for d in date_options %}<option value="{{ d }}" {% if d == selected_date %}selected{% endif %}>{{ d }}</option>{% endfor %}
+</select>

@@ -48,14 +48,27 @@ def live_server() -> Iterator[str]:
 
     # Use the fixed fixture prompts, not the user-editable app/static/prompts/.
     prompt_catalog.PROMPTS_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "prompts"
+    from datetime import date, timedelta
+
     from app.models.job import Job
     from app.schemas.script import ScriptCreate
     from app.services import script_service
 
     # Seed shoot folders under SOURCE_ROOT so the folder picker + channel/date filters
-    # (STORY_016) have entries: one only-gains-tv shoot and one youtube shoot.
+    # (STORY_016/017) have entries. Two flat shoots (one per channel) plus date-grouped
+    # ones: youtube gets today's date, only-gains-tv a few days back — so selecting a
+    # channel changes the available dates (STORY_017). Dates are relative to today so
+    # they always land inside the recent/upcoming window.
     source = Path(get_settings().source_root)
-    for shoot in (source / "only-gains-tv" / "test-shoot", source / "youtube" / "yt-test-shoot"):
+    yt_date = date.today().strftime("%y-%m-%d")
+    ogtv_date = (date.today() - timedelta(days=3)).strftime("%y-%m-%d")
+    seeds = [
+        source / "only-gains-tv" / "test-shoot",
+        source / "youtube" / "yt-test-shoot",
+        source / "youtube" / yt_date / f"{yt_date}-0000",
+        source / "only-gains-tv" / ogtv_date / f"{ogtv_date}-0000",
+    ]
+    for shoot in seeds:
         shoot.mkdir(parents=True, exist_ok=True)
         (shoot / "01.jpg").write_bytes(b"\x89PNG\r\n\x1a\nseed")
 

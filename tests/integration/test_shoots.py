@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -197,6 +197,61 @@ def test_dashboard_keeps_dropdowns_when_filter_matches_nothing(client):
     assert resp.status_code == 200
     assert 'name="channel"' in resp.text  # filter still present
     assert "No shoots match this filter" in resp.text
+
+
+# --- STORY_017: channel-scoped + upcoming date options -----------------------
+
+
+def test_date_options_follow_selected_channel(client):
+    root = Path(get_settings().source_root)
+    today = date.today()
+    yt_date = today.strftime("%y-%m-%d")  # youtube has today's date
+    ogtv_date = (today - timedelta(days=2)).strftime("%y-%m-%d")  # ogtv has a different date
+    _seed(root, f"youtube/{yt_date}/{yt_date}-0000", frame="01.jpeg")
+    _seed(root, f"only-gains-tv/{ogtv_date}/{ogtv_date}-0000")
+
+    resp = client.get("/shoots", params={"channel": "youtube"})
+    assert resp.status_code == 200
+    assert f'value="{yt_date}"' in resp.text  # youtube's date is offered
+    assert f'value="{ogtv_date}"' not in resp.text  # only-gains-tv's date is not
+
+
+def test_list_swaps_date_select_out_of_band_for_channel(client):
+    root = Path(get_settings().source_root)
+    today = date.today().strftime("%y-%m-%d")
+    _seed(root, f"youtube/{today}/{today}-0000", frame="01.jpeg")
+
+    resp = client.get("/shoots/list", params={"channel": "youtube"})
+    assert resp.status_code == 200
+    # The Date select comes back out-of-band so a channel change rebuilds its options.
+    assert 'id="shoot-date-filter"' in resp.text and 'hx-swap-oob="true"' in resp.text
+    assert f'value="{today}"' in resp.text  # youtube's date in the rebuilt options
+
+
+def test_stale_date_for_channel_resets_to_all(client):
+    root = Path(get_settings().source_root)
+    today = date.today()
+    yt_date = today.strftime("%y-%m-%d")
+    ogtv_date = (today - timedelta(days=2)).strftime("%y-%m-%d")
+    _seed(root, f"youtube/{yt_date}/{yt_date}-0000", frame="01.jpeg")
+    _seed(root, f"only-gains-tv/{ogtv_date}/{ogtv_date}-0000")
+
+    # Ask for youtube + a date only only-gains-tv has → date is dropped, all of youtube shows.
+    resp = client.get("/shoots/list", params={"channel": "youtube", "date": ogtv_date})
+    assert resp.status_code == 200
+    assert f"{yt_date}-0000" in resp.text  # youtube's shoot is listed (not filtered away)
+    # The reset is reflected: "All dates" is the selected option, not ogtv_date.
+    assert f'value="{ogtv_date}" selected' not in resp.text
+
+
+def test_future_dated_shoot_appears_as_option(client):
+    root = Path(get_settings().source_root)
+    tomorrow = (date.today() + timedelta(days=1)).strftime("%y-%m-%d")
+    _seed(root, f"only-gains-tv/{tomorrow}/{tomorrow}-0000")
+
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    assert f'value="{tomorrow}"' in resp.text  # upcoming date is offered
 
 
 def test_run_all_scopes_to_filtered_subset(client, db):

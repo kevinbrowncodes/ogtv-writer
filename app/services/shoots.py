@@ -144,12 +144,13 @@ def list_by_channel() -> dict[str, list[Shoot]]:
 def recent_dates(
     by_channel: dict[str, list[Shoot]], today: date | None = None, days: int = 7
 ) -> list[str]:
-    """Distinct shoot dates within the trailing ``days``-day window, newest first.
+    """Distinct recent + upcoming shoot dates, newest first.
 
     Pure (operates on an already-fetched grouping). A date is kept when it parses as
-    ``YY-MM-DD`` (``20YY-MM-DD``) and falls in ``[today - (days - 1), today]`` — older
-    and future dates are dropped. ``today`` defaults to ``date.today()`` (injectable for
-    deterministic tests).
+    ``YY-MM-DD`` (``20YY-MM-DD``) and is **on or after** ``today - (days - 1)`` — ``days``
+    bounds only the *past* window (so ancient history is hidden), while today and future
+    dates always pass (shoots are often pre-created for upcoming days, see STORY_017).
+    ``today`` defaults to ``date.today()`` (injectable for deterministic tests).
     """
     today = today or date.today()
     earliest = today - timedelta(days=days - 1)
@@ -162,7 +163,7 @@ def recent_dates(
                 parsed = datetime.strptime(s.date, "%y-%m-%d").date()
             except ValueError:
                 continue
-            if earliest <= parsed <= today:
+            if parsed >= earliest:
                 found.add(s.date)
     return sorted(found, reverse=True)
 

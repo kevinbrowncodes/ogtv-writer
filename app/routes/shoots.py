@@ -39,14 +39,18 @@ def _shoots_url(channel: str, date: str) -> str:
 def _list_context(db: DbSession, channel: str, date: str) -> dict:
     """Shared context for every render of the shoots list (full page + partials).
 
-    One filesystem scan feeds both the filter dropdowns (all channels / recent dates)
-    and the filtered tables shown below them, keeping the active filter sticky.
+    One filesystem scan feeds the channel dropdown, the channel-scoped date dropdown,
+    and the filtered tables below — keeping the active filter sticky. The date options
+    follow the selected channel (STORY_017); a date the channel doesn't have is cleared.
     """
     all_channels = shoots.list_by_channel()
+    date_options = shoots.recent_dates(shoots.filter_shoots(all_channels, channel=channel))
+    if date not in date_options:
+        date = ""  # stale date for this channel → fall back to "all dates"
     return {
         "channels": shoots.filter_shoots(all_channels, channel, date),
         "channel_options": list(all_channels),
-        "date_options": shoots.recent_dates(all_channels),
+        "date_options": date_options,
         "selected_channel": channel,
         "selected_date": date,
         **_queue_state(db),
@@ -72,10 +76,14 @@ def shoots_page(request: Request, db: DbSession, channel: str = "", date: str = 
 
 @router.get("/shoots/list", response_class=HTMLResponse)
 def shoots_list(request: Request, db: DbSession, channel: str = "", date: str = "") -> HTMLResponse:
-    """The channel tables on their own — HTMX swap/poll target, honouring the filter."""
+    """The channel tables + an out-of-band Date select — HTMX swap/poll target.
+
+    The OOB Date select means switching channels rebuilds the date options to that
+    channel's dates (STORY_017); the tables themselves swap into #shoots-list as before.
+    """
     return templates.TemplateResponse(
         request,
-        "partials/shoots/_list.html",
+        "partials/shoots/_list_response.html",
         _list_context(db, channel, date),
     )
 

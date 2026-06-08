@@ -88,6 +88,25 @@ def test_shoots_filter_by_channel(page: Page, live_server: str):
     expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
 
 
+def test_shoots_date_options_follow_channel(page: Page, live_server: str):
+    from datetime import date, timedelta
+
+    # Same date-relative seed as tests/e2e/conftest.py (same calendar day → same values).
+    yt_date = date.today().strftime("%y-%m-%d")
+    ogtv_date = (date.today() - timedelta(days=3)).strftime("%y-%m-%d")
+
+    page.goto(f"{live_server}/shoots")
+    date_filter = page.locator("#shoot-date-filter")
+    # "All channels": the Date dropdown is the union of both channels' dates.
+    expect(date_filter).to_contain_text(yt_date)
+    expect(date_filter).to_contain_text(ogtv_date)
+
+    # Switching to youtube rebuilds the Date dropdown to youtube's dates only (OOB swap).
+    page.locator("#shoot-channel-filter").select_option("youtube")
+    expect(date_filter).to_contain_text(yt_date)
+    expect(date_filter).not_to_contain_text(ogtv_date)
+
+
 def test_completed_job_shows_split_scripts(page: Page, live_server: str):
     page.goto(f"{live_server}/jobs")
     # Open the seeded completed job (the only row marked Done).
