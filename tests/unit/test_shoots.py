@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -157,6 +158,87 @@ def test_context_file_does_not_change_status(source_root):
     _make_shoot(source_root, "ch", "s", "01.jpg")
     shoots.write_context("ch/s", "note")  # context.txt is not a script
     assert shoots.resolve("ch/s").status == "pending"  # still pending, not "done"
+
+
+# --- STORY_016: date derivation + channel/date filtering ---------------------
+
+
+def _shoot(rel_dir: str, *, date: str = "", status: str = "pending") -> shoots.Shoot:
+    """A lightweight Shoot for the pure filter/date helpers (no filesystem)."""
+    return shoots.Shoot(
+        rel_dir=rel_dir,
+        channel=rel_dir.split("/")[0],
+        name=rel_dir.split("/")[-1],
+        frame="01.jpg",
+        status=status,
+        context="",
+        date=date,
+    )
+
+
+def test_shoot_date_derived_from_flat_prefix_nested_and_undated(source_root):
+    _make_shoot(source_root, "only-gains-tv", "26-06-07-0100_brown", "01.jpg")  # date-prefixed
+    _make_nested_shoot(source_root, "youtube", "26-06-07", "26-06-07-0000")  # date-group segment
+    _make_shoot(source_root, "only-gains-tv", "brown-flex", "01.jpg")  # no date in the path
+
+    dates = {s.name: s.date for s in shoots.list_shoots()}
+    assert dates["26-06-07-0100_brown"] == "26-06-07"  # from the flat prefix
+    assert dates["26-06-07-0000"] == "26-06-07"  # from the date-group folder
+    assert dates["brown-flex"] == ""  # no YY-MM-DD anywhere in the path
+
+
+def test_list_by_channel_excludes_configured_channels(source_root, monkeypatch):
+    monkeypatch.setenv("SHOOTS_EXCLUDED_CHANNELS", "wip")
+    get_settings.cache_clear()
+    _make_shoot(source_root, "only-gains-tv", "26-06-07-0100", "01.jpg")
+    _make_shoot(source_root, "youtube", "26-06-07-0000", "01.jpg")
+    _make_shoot(source_root, "wip", "26-06-07-0400", "01.jpg")
+
+    by_channel = shoots.list_by_channel()
+    assert set(by_channel) == {"only-gains-tv", "youtube"}  # wip hidden entirely
+
+
+def test_recent_dates_window_dedupes_and_sorts_newest_first():
+    today = date(2026, 6, 8)
+    by_channel = {
+        "only-gains-tv": [
+            _shoot("only-gains-tv/26-06-08-0100", date="26-06-08"),
+            _shoot("only-gains-tv/26-06-07-0100", date="26-06-07"),
+            _shoot("only-gains-tv/26-05-30-0100", date="26-05-30"),  # 9 days ago → out
+            _shoot("only-gains-tv/26-06-09-0100", date="26-06-09"),  # future → out
+            _shoot("only-gains-tv/no-date", date=""),  # no date → ignored
+        ],
+        "youtube": [_shoot("youtube/26-06-07-0000", date="26-06-07")],  # dup date across channels
+    }
+
+    assert shoots.recent_dates(by_channel, today=today) == ["26-06-08", "26-06-07"]
+
+
+def test_filter_shoots_by_channel_date_both_and_all():
+    by_channel = {
+        "only-gains-tv": [
+            _shoot("only-gains-tv/26-06-08-0100", date="26-06-08"),
+            _shoot("only-gains-tv/26-06-07-0100", date="26-06-07"),
+        ],
+        "youtube": [_shoot("youtube/26-06-07-0000", date="26-06-07")],
+    }
+
+    # All (blank/None) → everything unchanged.
+    assert shoots.filter_shoots(by_channel) == by_channel
+    assert shoots.filter_shoots(by_channel, "", "") == by_channel
+
+    # Channel only.
+    only_yt = shoots.filter_shoots(by_channel, channel="youtube")
+    assert set(only_yt) == {"youtube"}
+
+    # Date only — spans channels; empty channels are dropped.
+    on_07 = shoots.filter_shoots(by_channel, date="26-06-07")
+    assert set(on_07) == {"only-gains-tv", "youtube"}
+    assert [s.date for s in on_07["only-gains-tv"]] == ["26-06-07"]
+
+    # Both — intersection; a no-match channel disappears.
+    yt_08 = shoots.filter_shoots(by_channel, channel="youtube", date="26-06-08")
+    assert yt_08 == {}
 
 
 def test_write_outputs_single_then_multi(source_root):

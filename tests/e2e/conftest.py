@@ -52,10 +52,12 @@ def live_server() -> Iterator[str]:
     from app.schemas.script import ScriptCreate
     from app.services import script_service
 
-    # Seed one shoot folder under SOURCE_ROOT so the folder picker has an entry.
-    shoot = Path(get_settings().source_root) / "only-gains-tv" / "test-shoot"
-    shoot.mkdir(parents=True, exist_ok=True)
-    (shoot / "01.jpg").write_bytes(b"\x89PNG\r\n\x1a\nseed")
+    # Seed shoot folders under SOURCE_ROOT so the folder picker + channel/date filters
+    # (STORY_016) have entries: one only-gains-tv shoot and one youtube shoot.
+    source = Path(get_settings().source_root)
+    for shoot in (source / "only-gains-tv" / "test-shoot", source / "youtube" / "yt-test-shoot"):
+        shoot.mkdir(parents=True, exist_ok=True)
+        (shoot / "01.jpg").write_bytes(b"\x89PNG\r\n\x1a\nseed")
 
     # Fresh schema + seed (once for the whole session).
     Base.metadata.drop_all(bind=engine)

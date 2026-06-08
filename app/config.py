@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     # jobs read the frame from here and write the produced scripts back into the folder.
     source_root: str = "data/logline"
 
+    # Channel folders under SOURCE_ROOT to hide from the Shoots dashboard entirely
+    # (dropdown + list). Comma-separated; e.g. work-in-progress folders not ready to run.
+    shoots_excluded_channels: str = "wip"
+
     # --- Server ---------------------------------------------------------------
     host: str = "0.0.0.0"
     port: int = 8000

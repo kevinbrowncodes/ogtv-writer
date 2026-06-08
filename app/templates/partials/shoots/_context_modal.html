@@ -20,7 +20,9 @@
     <p class="mt-1 text-sm text-muted">
       Saved with this shoot and added to the prompt every time you run it. Leave blank to clear.
     </p>
-    <form hx-post="/shoots/context" hx-target="#shoots-list" hx-swap="outerHTML" class="mt-4 space-y-3">
+    {# hx-include carries the active channel/date filter so saving doesn't reset the list view. #}
+    <form hx-post="/shoots/context" hx-target="#shoots-list" hx-swap="outerHTML" class="mt-4 space-y-3"
+      hx-include="#shoot-channel-filter, #shoot-date-filter">
       <input type="hidden" name="source_dir" value="{{ source_dir }}" />
       <div>
         <label class="label" for="ctx-addendum">Additional context</label>

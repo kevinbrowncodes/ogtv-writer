@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,15 @@ from app.routes.shoots import MAX_ADDENDUM
 from app.services import job_service, shoots
 
 VEO = "video-review-prompt"  # fixture prompt (no {{COUNT}})
+
+
+def _seed(root: Path, rel_dir: str, *, frame: str = "01.jpg", script: bool = False) -> None:
+    """Create a shoot folder under SOURCE_ROOT (optionally already 'done')."""
+    d = root / rel_dir
+    d.mkdir(parents=True, exist_ok=True)
+    (d / frame).write_bytes(b"img")
+    if script:
+        (d / "script.txt").write_text("already generated")
 
 
 @pytest.fixture(autouse=True)
@@ -135,6 +145,88 @@ def test_run_uses_saved_context_as_addendum(client, db):
     job = job_service.list_jobs(db)[0]
     assert job.source_dir == "only-gains-tv/26-orange"
     assert job.addendum == "Make it extra spicy."  # from the saved note, stripped
+
+
+# --- STORY_016: channel + date filters ---------------------------------------
+
+
+def test_dashboard_renders_filter_dropdowns_and_hides_excluded_channel(client):
+    root = Path(get_settings().source_root)
+    _seed(root, "youtube/26-06-07/26-06-07-0000", frame="01.jpeg")
+    _seed(root, "wip/secret-wip-shoot")  # excluded channel
+
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    assert 'name="channel"' in resp.text and 'name="date"' in resp.text  # the two selects
+    assert "All channels" in resp.text and "All dates" in resp.text  # defaults
+    assert "only-gains-tv" in resp.text and "youtube" in resp.text  # channel options
+    assert 'value="wip"' not in resp.text  # no channel filter option for wip
+    assert "secret-wip-shoot" not in resp.text  # excluded from the list too
+
+
+def test_list_filters_by_channel(client):
+    root = Path(get_settings().source_root)
+    _seed(root, "youtube/26-06-07/26-06-07-0000", frame="01.jpeg")
+
+    resp = client.get("/shoots/list", params={"channel": "youtube"})
+    assert resp.status_code == 200
+    assert "26-06-07-0000" in resp.text  # the youtube shoot
+    assert "26-orange" not in resp.text  # the only-gains-tv shoot is filtered out
+
+
+def test_list_filters_by_date(client):
+    root = Path(get_settings().source_root)
+    today = date.today().strftime("%y-%m-%d")
+    _seed(root, f"only-gains-tv/{today}/{today}-0000")
+
+    resp = client.get("/shoots/list", params={"date": today})
+    assert resp.status_code == 200
+    assert f"{today}-0000" in resp.text  # the dated shoot
+    assert "26-orange" not in resp.text  # the undated shoot is filtered out
+
+
+def test_list_empty_filter_shows_message(client):
+    resp = client.get("/shoots/list", params={"channel": "no-such-channel"})
+    assert resp.status_code == 200
+    assert "No shoots match this filter" in resp.text
+
+
+def test_dashboard_keeps_dropdowns_when_filter_matches_nothing(client):
+    # Even when the filter empties the list, the picker + dropdowns stay so it can be cleared.
+    resp = client.get("/shoots", params={"channel": "no-such-channel"})
+    assert resp.status_code == 200
+    assert 'name="channel"' in resp.text  # filter still present
+    assert "No shoots match this filter" in resp.text
+
+
+def test_run_all_scopes_to_filtered_subset(client, db):
+    root = Path(get_settings().source_root)
+    _seed(root, "youtube/26-06-07/26-06-07-0000", frame="01.jpeg")  # another pending shoot
+
+    # Filter to youtube → only the youtube pending shoot runs (not 26-orange).
+    resp = client.post(
+        "/shoots/run-all",
+        data={"prompt_slug": VEO, "channel": "youtube"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    jobs = job_service.list_jobs(db)
+    assert len(jobs) == 1
+    assert jobs[0].source_dir == "youtube/26-06-07/26-06-07-0000"
+
+
+def test_run_redirect_preserves_filter(client):
+    resp = client.post(
+        "/shoots/run",
+        data={
+            "source_dir": "only-gains-tv/26-orange",
+            "prompt_slug": VEO,
+            "channel": "only-gains-tv",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "channel=only-gains-tv" in resp.headers["location"]
 
 
 def test_dashboard_lists_nested_shoot_and_runs_it(client, db):

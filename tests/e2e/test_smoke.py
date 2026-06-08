@@ -71,6 +71,23 @@ def test_shoots_dashboard_lists_pending(page: Page, live_server: str):
     expect(page.locator("#shoots-list")).to_contain_text("Run")
 
 
+def test_shoots_filter_by_channel(page: Page, live_server: str):
+    page.goto(f"{live_server}/shoots")
+    # Both seeded channels are visible with no filter.
+    expect(page.locator("#shoots-list")).to_contain_text("test-shoot")
+    expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
+
+    # Narrowing to youtube (HTMX) drops the only-gains-tv shoot from the list.
+    page.locator("#shoot-channel-filter").select_option("youtube")
+    expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
+    expect(page.locator("#shoots-list")).not_to_contain_text("only-gains-tv")
+
+    # Back to "All channels" shows everything again.
+    page.locator("#shoot-channel-filter").select_option("")
+    expect(page.locator("#shoots-list")).to_contain_text("test-shoot")
+    expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
+
+
 def test_completed_job_shows_split_scripts(page: Page, live_server: str):
     page.goto(f"{live_server}/jobs")
     # Open the seeded completed job (the only row marked Done).

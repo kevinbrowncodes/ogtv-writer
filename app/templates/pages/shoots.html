@@ -11,10 +11,11 @@
     </p>
   </div>
 
-  {% if channels %}
-  {# One form: the picker fields below are shared by every Run / Run-all button. #}
+  {% if has_shoots %}
+  {# One form: the picker fields below are shared by every Run / Run-all button. The
+     channel/date filters double as form fields, so Run-all runs only the visible subset. #}
   <form method="post" action="/shoots/run-all" class="space-y-6">
-    <div class="card grid items-end gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="card grid items-end gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       <div>
         <label class="label" for="prompt_slug">Prompt</label>
         <select id="prompt_slug" name="prompt_slug" class="input"
@@ -29,6 +30,24 @@
           {% for m in models %}
             <option value="{{ m }}" {% if m == default_model %}selected{% endif %}>{{ m }} — {{ price_label(m) }}</option>
           {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="label" for="shoot-channel-filter">Channel</label>
+        <select id="shoot-channel-filter" name="channel" class="input"
+          hx-get="/shoots/list" hx-target="#shoots-list" hx-swap="outerHTML" hx-trigger="change"
+          hx-include="#shoot-channel-filter, #shoot-date-filter">
+          <option value="">All channels</option>
+          {% for c in channel_options %}<option value="{{ c }}" {% if c == selected_channel %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="label" for="shoot-date-filter">Date</label>
+        <select id="shoot-date-filter" name="date" class="input"
+          hx-get="/shoots/list" hx-target="#shoots-list" hx-swap="outerHTML" hx-trigger="change"
+          hx-include="#shoot-channel-filter, #shoot-date-filter">
+          <option value="">All dates</option>
+          {% for d in date_options %}<option value="{{ d }}" {% if d == selected_date %}selected{% endif %}>{{ d }}</option>{% endfor %}
         </select>
       </div>
       <div id="shoots-count-field">{% include "partials/jobs/_count_field.html" %}</div>

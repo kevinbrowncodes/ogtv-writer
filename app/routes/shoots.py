@@ -8,6 +8,7 @@ The prompt / model / count are chosen at run time via the picker on the page.
 from __future__ import annotations
 
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -29,29 +30,53 @@ def _queue_state(db: DbSession) -> dict:
     return {"running": running, "queued": queued, "active": bool(running or queued)}
 
 
+def _shoots_url(channel: str, date: str) -> str:
+    """/shoots, carrying the active filter so a run/redirect doesn't reset the view."""
+    query = urlencode({k: v for k, v in (("channel", channel), ("date", date)) if v})
+    return f"/shoots?{query}" if query else "/shoots"
+
+
+def _list_context(db: DbSession, channel: str, date: str) -> dict:
+    """Shared context for every render of the shoots list (full page + partials).
+
+    One filesystem scan feeds both the filter dropdowns (all channels / recent dates)
+    and the filtered tables shown below them, keeping the active filter sticky.
+    """
+    all_channels = shoots.list_by_channel()
+    return {
+        "channels": shoots.filter_shoots(all_channels, channel, date),
+        "channel_options": list(all_channels),
+        "date_options": shoots.recent_dates(all_channels),
+        "selected_channel": channel,
+        "selected_date": date,
+        **_queue_state(db),
+    }
+
+
 @router.get("/shoots", response_class=HTMLResponse)
-def shoots_page(request: Request, db: DbSession) -> HTMLResponse:
+def shoots_page(request: Request, db: DbSession, channel: str = "", date: str = "") -> HTMLResponse:
+    context = _list_context(db, channel, date)
     return templates.TemplateResponse(
         request,
         "pages/shoots.html",
         {
-            "channels": shoots.list_by_channel(),
+            **context,
+            "has_shoots": bool(context["channel_options"]),
             "prompts": prompt_catalog.list_prompts(),
             "models": generation_service.available_models(),
             "default_model": get_settings().gemini_model,
             "source_root": get_settings().source_root,
-            **_queue_state(db),
         },
     )
 
 
 @router.get("/shoots/list", response_class=HTMLResponse)
-def shoots_list(request: Request, db: DbSession) -> HTMLResponse:
-    """The channel tables on their own — HTMX poll target so statuses update live."""
+def shoots_list(request: Request, db: DbSession, channel: str = "", date: str = "") -> HTMLResponse:
+    """The channel tables on their own — HTMX swap/poll target, honouring the filter."""
     return templates.TemplateResponse(
         request,
         "partials/shoots/_list.html",
-        {"channels": shoots.list_by_channel(), **_queue_state(db)},
+        _list_context(db, channel, date),
     )
 
 
@@ -106,6 +131,8 @@ def shoots_save_context(
     db: DbSession,
     source_dir: Annotated[str, Form()] = "",
     addendum: Annotated[str, Form()] = "",
+    channel: Annotated[str, Form()] = "",
+    date: Annotated[str, Form()] = "",
 ) -> HTMLResponse:
     """Save (or clear) a shoot's context, then re-render the list and close the modal."""
     if len(addendum) > MAX_ADDENDUM:
@@ -120,7 +147,7 @@ def shoots_save_context(
     return templates.TemplateResponse(
         request,
         "partials/shoots/_context_saved.html",
-        {"channels": shoots.list_by_channel(), **_queue_state(db)},
+        _list_context(db, channel, date),
         headers=toast_trigger(message, category),
     )
 
@@ -133,10 +160,12 @@ def shoots_run(
     prompt_slug: Annotated[str, Form()] = "",
     model: Annotated[str, Form()] = "",
     count: Annotated[str, Form()] = "",
+    channel: Annotated[str, Form()] = "",
+    date: Annotated[str, Form()] = "",
 ) -> RedirectResponse:
     error = _queue_shoot(db, rel_dir=source_dir, prompt_slug=prompt_slug, model=model, count=count)
     flash(request, error or "Job queued.", "danger" if error else "success")
-    return RedirectResponse("/shoots", status_code=303)
+    return RedirectResponse(_shoots_url(channel, date), status_code=303)
 
 
 @router.post("/shoots/run-all")
@@ -146,13 +175,12 @@ def shoots_run_all(
     prompt_slug: Annotated[str, Form()] = "",
     model: Annotated[str, Form()] = "",
     count: Annotated[str, Form()] = "",
+    channel: Annotated[str, Form()] = "",
+    date: Annotated[str, Form()] = "",
 ) -> RedirectResponse:
-    pending = [
-        s
-        for shoot_list in shoots.list_by_channel().values()
-        for s in shoot_list
-        if s.status == "pending"
-    ]
+    # Scope to the currently visible (filtered) subset — what you see is what runs.
+    visible = shoots.filter_shoots(shoots.list_by_channel(), channel, date)
+    pending = [s for shoot_list in visible.values() for s in shoot_list if s.status == "pending"]
     queued = 0
     last_error: str | None = None
     for shoot in pending:
@@ -169,4 +197,4 @@ def shoots_run_all(
         flash(
             request, last_error or "No pending shoots to run.", "danger" if last_error else "info"
         )
-    return RedirectResponse("/shoots", status_code=303)
+    return RedirectResponse(_shoots_url(channel, date), status_code=303)

@@ -1,14 +1,23 @@
 {#
   Channel tables for the Shoots dashboard. Root id="shoots-list" is the HTMX poll
   target: it self-refreshes every 3s while a job is queued/running (so statuses flip
-  Pending → Done live) and stops once the queue is idle. Sits inside the page's <form>,
+  Pending → Done live) and stops once the queue is idle. The poll carries the channel/date
+  filter (hx-include) so auto-refresh keeps the current view. Sits inside the page's <form>,
   so the Run buttons still submit the shared prompt/model/count picker.
   Expects: channels, active, running, queued.
 #}
 <div id="shoots-list" class="space-y-6"
-  {% if active %}hx-get="/shoots/list" hx-trigger="every 3s" hx-swap="outerHTML"{% endif %}>
+  {% if active %}hx-get="/shoots/list" hx-trigger="every 3s" hx-swap="outerHTML"
+  hx-include="#shoot-channel-filter, #shoot-date-filter"{% endif %}>
   {% if active %}
   <p class="text-xs text-muted">Generating… {{ running }} running · {{ queued }} queued (auto-refreshing)</p>
+  {% endif %}
+
+  {% if not channels %}
+  <div class="card px-5 py-12 text-center">
+    <p class="text-sm font-medium">No shoots match this filter</p>
+    <p class="mx-auto mt-1 max-w-md text-sm text-muted">Try “All channels” / “All dates” to see everything.</p>
+  </div>
   {% endif %}
 
   {% set styles = {"done": "bg-success/15 text-success", "pending": "bg-brand/15 text-brand", "no_frame": "bg-surface-2 text-muted"} %}

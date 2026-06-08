@@ -15,8 +15,10 @@ path is absolute. Everything is confined to SOURCE_ROOT.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from app.config import get_settings
@@ -27,6 +29,10 @@ _FRAME_EXTS = (".jpg", ".jpeg", ".png", ".webp")
 
 _CONTEXT_FILE = "context.txt"  # saved per-shoot prompt addendum; reused on every run
 
+# A shoot's date is a YY-MM-DD chunk in its path — either the date-prefixed flat name
+# ("26-06-07-0100_brown") or a date-group segment ("youtube/26-06-07/…"). First match wins.
+_DATE_RE = re.compile(r"\d{2}-\d{2}-\d{2}")
+
 
 @dataclass(frozen=True)
 class Shoot:
@@ -36,11 +42,24 @@ class Shoot:
     frame: str | None  # "01.jpg" etc., or None when the folder has no 01.* frame
     status: str  # "done" (has a script), "pending" (frame, no script), or "no_frame"
     context: str  # saved extra prompt context (from context.txt), or "" when none
+    date: str  # "YY-MM-DD" derived from the path, or "" when the path has no date
 
 
 def _root() -> Path:
     p = Path(get_settings().source_root)
     return (p if p.is_absolute() else PROJECT_ROOT / p).resolve()
+
+
+def _excluded_channels() -> set[str]:
+    """Channel folders to hide from the dashboard (from SHOOTS_EXCLUDED_CHANNELS)."""
+    raw = get_settings().shoots_excluded_channels
+    return {c.strip() for c in raw.split(",") if c.strip()}
+
+
+def _shoot_date(rel_dir: str) -> str:
+    """The first YY-MM-DD chunk in the relative path, or "" when there is none."""
+    match = _DATE_RE.search(rel_dir)
+    return match.group(0) if match else ""
 
 
 def _find_frame(directory: Path) -> str | None:
@@ -85,7 +104,9 @@ def _shoot(shoot_dir: Path) -> Shoot:
         status = "pending"
     else:
         status = "no_frame"
-    return Shoot(rel, channel, shoot_dir.name, frame, status, _read_context(shoot_dir))
+    return Shoot(
+        rel, channel, shoot_dir.name, frame, status, _read_context(shoot_dir), _shoot_date(rel)
+    )
 
 
 def list_shoots() -> list[Shoot]:
@@ -102,16 +123,66 @@ def list_shoots() -> list[Shoot]:
 
 
 def list_by_channel() -> dict[str, list[Shoot]]:
-    """All shoots grouped by channel (including frameless ones), each with a status."""
+    """All shoots grouped by channel (including frameless ones), each with a status.
+
+    Channels listed in SHOOTS_EXCLUDED_CHANNELS (e.g. ``wip``) are skipped entirely.
+    """
     root = _root()
     if not root.is_dir():
         return {}
+    excluded = _excluded_channels()
     by_channel: dict[str, list[Shoot]] = {}
     for channel_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+        if channel_dir.name in excluded:
+            continue
         shoots = [_shoot(d) for d in _shoot_dirs(channel_dir)]
         if shoots:
             by_channel[channel_dir.name] = shoots
     return by_channel
+
+
+def recent_dates(
+    by_channel: dict[str, list[Shoot]], today: date | None = None, days: int = 7
+) -> list[str]:
+    """Distinct shoot dates within the trailing ``days``-day window, newest first.
+
+    Pure (operates on an already-fetched grouping). A date is kept when it parses as
+    ``YY-MM-DD`` (``20YY-MM-DD``) and falls in ``[today - (days - 1), today]`` — older
+    and future dates are dropped. ``today`` defaults to ``date.today()`` (injectable for
+    deterministic tests).
+    """
+    today = today or date.today()
+    earliest = today - timedelta(days=days - 1)
+    found: set[str] = set()
+    for shoot_list in by_channel.values():
+        for s in shoot_list:
+            if not s.date:
+                continue
+            try:
+                parsed = datetime.strptime(s.date, "%y-%m-%d").date()
+            except ValueError:
+                continue
+            if earliest <= parsed <= today:
+                found.add(s.date)
+    return sorted(found, reverse=True)
+
+
+def filter_shoots(
+    by_channel: dict[str, list[Shoot]], channel: str | None = None, date: str | None = None
+) -> dict[str, list[Shoot]]:
+    """Narrow a grouping by channel and/or date. Pure (no filesystem access).
+
+    A blank/``None`` channel or date means "all". Channels left with no matching shoots
+    after a date filter are dropped, so empty tables never render.
+    """
+    result: dict[str, list[Shoot]] = {}
+    for name, shoot_list in by_channel.items():
+        if channel and name != channel:
+            continue
+        matches = [s for s in shoot_list if not date or s.date == date]
+        if matches:
+            result[name] = matches
+    return result
 
 
 def resolve(rel_dir: str) -> Shoot | None:
