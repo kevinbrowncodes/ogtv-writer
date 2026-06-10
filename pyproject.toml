@@ -22,6 +22,7 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "jinja2>=3.1",
     "sqlalchemy>=2.0",
+    "alembic>=1.13",           # DB migrations; imported on startup by migrations_runner
     "pydantic-settings>=2.4",
     "python-multipart>=0.0.9", # parses HTML form submissions (HTMX hx-post)
     "itsdangerous>=2.2",       # signs the session cookie (flash messages)
