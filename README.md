@@ -222,12 +222,40 @@ make check
 
 ## Docker
 
+Run the whole app as a single container — no Python, virtualenv, Node, or Tailwind
+setup required. You only need Docker and a `.env`.
+
 ```bash
-# http://localhost:8000
-docker compose up --build
-# or
-make docker-build && docker run -p 8000:8000 --env-file .env ogtv-writer
+# One-time: create your .env (defaults work; add your Gemini key to enable generation)
+cp .env.example .env
+# Build + run; then open http://localhost:8000
+make docker-run
 ```
+
+`make docker-run` is `docker compose up --build`. What the container does:
+
+- **Migrations run on startup.** A fresh database gets the full schema; an existing one
+  upgrades in place — no manual `make migrate` step.
+- **Your real data is used.** The host `./data` is bind-mounted into the container, so it
+  reads your existing SQLite database (`data/app.db`) and shoot image folders
+  (`data/logline/...`), and anything the app writes persists straight back to `./data`.
+  Data survives restarts and rebuilds. Want an isolated/throwaway instance instead? Swap
+  the `./data:/app/data` line in [docker-compose.yml](docker-compose.yml) for a named volume.
+- **Generation is optional at boot.** The app starts even without a Gemini key; the key in
+  `.env` only enables the generate feature.
+
+Single-image alternative (mount `./data` yourself so data persists):
+
+```bash
+# Build the image
+make docker-build
+# Run it, mounting your .env and ./data
+docker run -p 8000:8000 --env-file .env -v "$(pwd)/data:/app/data" ogtv-writer
+```
+
+> On native Linux, the container runs as a non-root user; if writes to a bind-mounted
+> `./data` fail, match the host directory's ownership or relax its permissions. (On macOS
+> Docker Desktop, bind mounts are permission-permissive, so this just works.)
 
 ---
 

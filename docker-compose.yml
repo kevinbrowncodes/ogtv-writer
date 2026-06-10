@@ -2,7 +2,10 @@
 #
 # Notes:
 #   - Reads your local .env for config (copy from .env.example first).
-#   - Persists the SQLite database in a named volume so data survives restarts.
+#   - Bind-mounts the host ./data into the container, so it uses your real SQLite
+#     database (data/app.db) and shoot image folders (data/logline/...); anything
+#     the app writes persists straight back to ./data. Swap to a named volume if
+#     you want an isolated, throwaway instance instead.
 #   - For Postgres, add a `db` service and set DATABASE_URL accordingly.
 
 services:
@@ -17,7 +20,7 @@ services:
       ENVIRONMENT: production
       DATABASE_URL: sqlite:///./data/app.db
     volumes:
-      - app-data:/app/data
+      - ./data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
       interval: 30s
@@ -25,6 +28,3 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
-
-volumes:
-  app-data:

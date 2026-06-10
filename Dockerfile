@@ -34,6 +34,13 @@ RUN pip install --upgrade pip && pip install .
 # Bring in the compiled CSS from the css stage (overwrites any local copy).
 COPY --from=css /build/app/static/css/app.css ./app/static/css/app.css
 
+# Alembic config + migration scripts must live at the image root: on startup the
+# app runs migrations_runner.upgrade_to_head(), which loads ./alembic.ini and
+# ./migrations (resolved relative to the repo root, i.e. /app). Without these the
+# container crashes before serving. Copied before the chown so appuser owns them.
+COPY alembic.ini ./
+COPY migrations ./migrations
+
 # Run as a non-root user; ensure the SQLite data dir is writable.
 RUN useradd --create-home appuser \
     && mkdir -p /app/data \
