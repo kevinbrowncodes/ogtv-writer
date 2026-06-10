@@ -60,3 +60,17 @@ def test_makefile_has_docker_down_target() -> None:
     assert "docker-down:" in _MAKEFILE and "docker compose down" in _MAKEFILE, (
         "Makefile must define a docker-down target to stop the background container."
     )
+
+
+def test_compose_publishes_configurable_port_defaulting_to_9001() -> None:
+    assert "${WEB_PORT:-9001}:8000" in _COMPOSE, (
+        "docker-compose.yml must publish the container's internal :8000 on the host via "
+        "${WEB_PORT:-9001} — default host port 9001, overridable with WEB_PORT (STORY_020)."
+    )
+
+
+def test_compose_no_longer_hardcodes_port_8000_on_the_host() -> None:
+    assert '"8000:8000"' not in _COMPOSE, (
+        "The fixed 8000:8000 mapping was replaced by ${WEB_PORT:-9001}:8000; a leftover "
+        "8000:8000 would publish on the wrong host port."
+    )

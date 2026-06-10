@@ -228,7 +228,7 @@ setup required. You only need Docker and a `.env`.
 ```bash
 # One-time: create your .env (defaults work; add your Gemini key to enable generation)
 cp .env.example .env
-# Build + run; then open http://localhost:8000
+# Build + run; then open http://localhost:9001
 make docker-run
 ```
 
@@ -269,9 +269,15 @@ Single-image alternative (mount `./data` yourself so data persists):
 ```bash
 # Build the image
 make docker-build
-# Run it, mounting your .env and ./data
-docker run -p 8000:8000 --env-file .env -v "$(pwd)/data:/app/data" ogtv-writer
+# Run it on http://localhost:9001, mounting your .env and ./data
+docker run -p 9001:8000 --env-file .env -v "$(pwd)/data:/app/data" ogtv-writer
 ```
+
+**Changing the port.** The container is published on **9001** by default. To use a
+different host port, set `WEB_PORT` in your `.env` (e.g. `WEB_PORT=8080` → serves at
+`http://localhost:8080`) and re-run `make docker-up` — no file edits needed. The container
+always listens on `8000` internally; `WEB_PORT` only changes what the host publishes. (This
+is separate from the app's own `PORT`, used by local `make dev`.)
 
 > On native Linux, the container runs as a non-root user; if writes to a bind-mounted
 > `./data` fail, match the host directory's ownership or relax its permissions. (On macOS

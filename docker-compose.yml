@@ -1,4 +1,4 @@
-# Local container run. `docker compose up --build` then open http://localhost:8000
+# Local container run. `docker compose up --build` then open http://localhost:9001
 #
 # Notes:
 #   - Reads your local .env for config (copy from .env.example first).
@@ -12,7 +12,9 @@ services:
   web:
     build: .
     ports:
-      - "8000:8000"
+      # host:container — host port is configurable via WEB_PORT (default 9001),
+      # the container keeps listening internally on 8000 (so does the healthcheck).
+      - "${WEB_PORT:-9001}:8000"
     env_file:
       - .env
     environment:
