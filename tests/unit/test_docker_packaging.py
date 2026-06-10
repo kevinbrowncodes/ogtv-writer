@@ -18,6 +18,7 @@ from pathlib import Path
 _ROOT = Path(__file__).resolve().parents[2]  # tests/unit/ -> repo root
 _DOCKERFILE = (_ROOT / "Dockerfile").read_text()
 _COMPOSE = (_ROOT / "docker-compose.yml").read_text()
+_MAKEFILE = (_ROOT / "Makefile").read_text()
 
 
 def test_dockerfile_copies_alembic_config() -> None:
@@ -45,4 +46,17 @@ def test_compose_does_not_use_the_old_named_volume() -> None:
     assert "app-data:/app/data" not in _COMPOSE, (
         "The named-volume mount was replaced by the ./data bind mount (STORY_018); "
         "a stray app-data mount would hide the operator's real data."
+    )
+
+
+def test_makefile_has_detached_docker_up_target() -> None:
+    assert "docker-up:" in _MAKEFILE and "docker compose up -d" in _MAKEFILE, (
+        "Makefile must define a docker-up target that runs `docker compose up -d` "
+        "(detached) so the app can run in the background (STORY_019)."
+    )
+
+
+def test_makefile_has_docker_down_target() -> None:
+    assert "docker-down:" in _MAKEFILE and "docker compose down" in _MAKEFILE, (
+        "Makefile must define a docker-down target to stop the background container."
     )

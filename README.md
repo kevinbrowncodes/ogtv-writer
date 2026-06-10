@@ -244,6 +244,26 @@ make docker-run
 - **Generation is optional at boot.** The app starts even without a Gemini key; the key in
   `.env` only enables the generate feature.
 
+### Run it in the background (and start at login)
+
+`make docker-run` stays in your terminal. To run it as a background service that survives
+closing the terminal and comes back after a reboot:
+
+```bash
+# Start detached (background); returns to the prompt
+make docker-up
+# Follow the logs when you want them
+make docker-logs
+# Stop and remove the container (your ./data is kept)
+make docker-down
+```
+
+The container uses `restart: unless-stopped`, so once started with `make docker-up` Docker
+restarts it automatically whenever the Docker daemon starts — **provided Docker Desktop
+itself auto-starts.** Enable that one-time in **Docker Desktop → Settings → General →
+"Start Docker Desktop when you sign in to your computer."** (On macOS this is start-at-login,
+not pre-login boot.)
+
 Single-image alternative (mount `./data` yourself so data persists):
 
 ```bash

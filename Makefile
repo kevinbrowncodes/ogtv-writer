@@ -96,8 +96,20 @@ docker-build: ## Build the Docker image
 	docker build -t ogtv-writer .
 
 .PHONY: docker-run
-docker-run: ## Run the app via docker compose
+docker-run: ## Run the app via docker compose (foreground; logs in this terminal)
 	docker compose up --build
+
+.PHONY: docker-up
+docker-up: ## Run the app detached (background); survives terminal close + auto-restarts
+	docker compose up -d --build
+
+.PHONY: docker-down
+docker-down: ## Stop and remove the background container (keeps host ./data)
+	docker compose down
+
+.PHONY: docker-logs
+docker-logs: ## Tail the running container's logs
+	docker compose logs -f web
 
 # --- Housekeeping -------------------------------------------------------------
 .PHONY: clean
