@@ -92,8 +92,8 @@ test-all: ## Run every test (unit + integration + e2e)
 
 # --- Docker -------------------------------------------------------------------
 .PHONY: docker-build
-docker-build: ## Build the Docker image
-	docker build -t ogtv-writer .
+docker-build: ## Build the Docker image (same tag Compose runs: ogtv-writer:latest)
+	docker build -t ogtv-writer:latest .
 
 .PHONY: docker-run
 docker-run: ## Run the app via docker compose (foreground; logs in this terminal)

@@ -11,6 +11,11 @@
 services:
   web:
     build: .
+    # Pin the built image's name so `make docker-build` and Compose produce the SAME
+    # image. Without this, Compose auto-names it <project>-<service> (ogtv-writer-web)
+    # while `docker build -t ogtv-writer` tags ogtv-writer — two images, only one ever
+    # run, leaving a stale orphan and "which image am I on?" ambiguity (STORY_021).
+    image: ogtv-writer:latest
     ports:
       # host:container — host port is configurable via WEB_PORT (default 9001),
       # the container keeps listening internally on 8000 (so does the healthcheck).

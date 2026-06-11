@@ -13,12 +13,25 @@ makes the container actually boot:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]  # tests/unit/ -> repo root
 _DOCKERFILE = (_ROOT / "Dockerfile").read_text()
 _COMPOSE = (_ROOT / "docker-compose.yml").read_text()
 _MAKEFILE = (_ROOT / "Makefile").read_text()
+
+
+def _compose_image_name() -> str | None:
+    """The `image:` value pinned in docker-compose.yml, or None when unset."""
+    match = re.search(r"^\s*image:\s*(\S+)", _COMPOSE, re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def _docker_build_tag() -> str | None:
+    """The tag `make docker-build` passes to `docker build -t`, or None when unset."""
+    match = re.search(r"docker build -t (\S+)", _MAKEFILE)
+    return match.group(1) if match else None
 
 
 def test_dockerfile_copies_alembic_config() -> None:
@@ -73,4 +86,20 @@ def test_compose_no_longer_hardcodes_port_8000_on_the_host() -> None:
     assert '"8000:8000"' not in _COMPOSE, (
         "The fixed 8000:8000 mapping was replaced by ${WEB_PORT:-9001}:8000; a leftover "
         "8000:8000 would publish on the wrong host port."
+    )
+
+
+def test_compose_pins_an_explicit_image_name() -> None:
+    assert _compose_image_name() == "ogtv-writer:latest", (
+        "docker-compose.yml must pin `image: ogtv-writer:latest` on the web service so "
+        "Compose tags the image it builds instead of the auto-generated ogtv-writer-web "
+        "name — otherwise `make docker-build` builds an image Compose never runs (STORY_021)."
+    )
+
+
+def test_docker_build_and_compose_use_the_same_image_name() -> None:
+    assert _docker_build_tag() == _compose_image_name(), (
+        "`make docker-build` must tag the SAME image name Compose runs, so the build "
+        "target produces the image that actually runs — not a stale orphan. "
+        f"Makefile tags {_docker_build_tag()!r}; Compose runs {_compose_image_name()!r} (STORY_021)."
     )
