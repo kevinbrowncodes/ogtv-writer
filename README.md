@@ -264,6 +264,26 @@ itself auto-starts.** Enable that one-time in **Docker Desktop → Settings → 
 "Start Docker Desktop when you sign in to your computer."** (On macOS this is start-at-login,
 not pre-login boot.)
 
+Check whether it's actually running — and bring it back if not:
+
+```bash
+# Up? Prints a row when running; empty when it's down
+docker compose ps --status running
+# Down for any reason? Re-run this (it rebuilds if needed)
+make docker-up
+```
+
+Two gotchas worth knowing:
+
+- **`unless-stopped` won't revive a container you stopped on purpose.** After `make
+  docker-down` (or `docker stop`), it stays down until you `make docker-up` again — Docker
+  only auto-restores containers that were *running* when the daemon last exited. If the app
+  is unexpectedly unreachable, this check is the first thing to run.
+- **Prompt files are baked into the image, not bind-mounted.** Everything under
+  `app/static/prompts/` is copied in at build time (only `./data` is a live mount). After
+  editing or adding a prompt, re-run `make docker-up` (it rebuilds) so the change reaches the
+  running container.
+
 Single-image alternative (mount `./data` yourself so data persists):
 
 ```bash
