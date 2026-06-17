@@ -53,10 +53,20 @@
                 hx-get="/shoots/context"
                 hx-vals='{"source_dir": "{{ s.rel_dir }}"}'
                 hx-target="#modal" hx-swap="innerHTML">{{ "✎ Context" if s.context else "+ Context" }}</button>
+              {# hx-post swaps only #shoots-list so the shared picker (prompt/model/count)
+                 is never re-rendered and keeps its values (BUG_004). hx-include pulls the
+                 picker fields; hx-vals carries this row's shoot. type=submit + formaction is
+                 the no-JS fallback (full POST → redirect). #}
               {% if s.status == "pending" %}
-              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-primary px-2.5 py-1 text-xs">Run</button>
+              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}"
+                hx-post="/shoots/run" hx-vals='{"source_dir": "{{ s.rel_dir }}"}'
+                hx-include="closest form" hx-target="#shoots-list" hx-swap="outerHTML"
+                class="btn-primary px-2.5 py-1 text-xs">Run</button>
               {% else %}
-              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}" class="btn-ghost px-2.5 py-1 text-xs">Re-run</button>
+              <button type="submit" formaction="/shoots/run" name="source_dir" value="{{ s.rel_dir }}"
+                hx-post="/shoots/run" hx-vals='{"source_dir": "{{ s.rel_dir }}"}'
+                hx-include="closest form" hx-target="#shoots-list" hx-swap="outerHTML"
+                class="btn-ghost px-2.5 py-1 text-xs">Re-run</button>
               {% endif %}
             </div>
             {% else %}

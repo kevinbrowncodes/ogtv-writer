@@ -77,6 +77,34 @@ def test_run_all_queues_pending_only(client, db):
     assert jobs[0].source_dir == "only-gains-tv/26-orange"
 
 
+def test_run_htmx_swaps_list_without_resetting_picker(client, db):
+    # An HTMX run returns only the list partial (+ a toast) so the picker <form> is never
+    # re-rendered and the operator's Prompt/Model/count survive (BUG_004).
+    resp = client.post(
+        "/shoots/run",
+        data={"source_dir": "only-gains-tv/26-orange", "prompt_slug": VEO},
+        headers={"HX-Request": "true"},
+    )
+    assert resp.status_code == 200
+    assert 'id="shoots-list"' in resp.text  # the tables swapped in
+    assert "Select a prompt" not in resp.text  # the picker is NOT in the response → untouched
+    assert "HX-Trigger" in resp.headers  # success toast fired
+    assert job_service.count_jobs(db) == 1  # the job really queued
+
+
+def test_run_all_htmx_swaps_list_without_resetting_picker(client, db):
+    resp = client.post(
+        "/shoots/run-all",
+        data={"prompt_slug": VEO},
+        headers={"HX-Request": "true"},
+    )
+    assert resp.status_code == 200
+    assert 'id="shoots-list"' in resp.text
+    assert "Select a prompt" not in resp.text
+    assert "HX-Trigger" in resp.headers
+    assert job_service.count_jobs(db) == 1  # only the one pending shoot
+
+
 def test_rows_show_context_button(client):
     resp = client.get("/shoots")
     assert resp.status_code == 200

@@ -11,12 +11,12 @@ from typing import Annotated
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from app.config import get_settings
 from app.dependencies import DbSession
 from app.services import generation_service, job_service, prompt_catalog, shoots
-from app.templating import flash, templates, toast_trigger
+from app.templating import flash, is_htmx, templates, toast_trigger
 
 router = APIRouter(tags=["shoots"])
 
@@ -160,6 +160,26 @@ def shoots_save_context(
     )
 
 
+def _run_response(
+    request: Request, db: DbSession, message: str, category: str, channel: str, date: str
+) -> Response:
+    """Answer a run action: HTMX swaps just the list (so the picker is untouched), while a
+    plain POST flashes + redirects as the no-JS fallback.
+
+    Returning only the list partial for HTMX is what keeps the Prompt/Model/count picker
+    the operator set — the <form> is never re-rendered, so nothing resets (BUG_004).
+    """
+    if is_htmx(request):
+        return templates.TemplateResponse(
+            request,
+            "partials/shoots/_list_response.html",
+            _list_context(db, channel, date),
+            headers=toast_trigger(message, category),
+        )
+    flash(request, message, category)
+    return RedirectResponse(_shoots_url(channel, date), status_code=303)
+
+
 @router.post("/shoots/run")
 def shoots_run(
     request: Request,
@@ -170,10 +190,11 @@ def shoots_run(
     count: Annotated[str, Form()] = "",
     channel: Annotated[str, Form()] = "",
     date: Annotated[str, Form()] = "",
-) -> RedirectResponse:
+) -> Response:
     error = _queue_shoot(db, rel_dir=source_dir, prompt_slug=prompt_slug, model=model, count=count)
-    flash(request, error or "Job queued.", "danger" if error else "success")
-    return RedirectResponse(_shoots_url(channel, date), status_code=303)
+    return _run_response(
+        request, db, error or "Job queued.", "danger" if error else "success", channel, date
+    )
 
 
 @router.post("/shoots/run-all")
@@ -185,7 +206,7 @@ def shoots_run_all(
     count: Annotated[str, Form()] = "",
     channel: Annotated[str, Form()] = "",
     date: Annotated[str, Form()] = "",
-) -> RedirectResponse:
+) -> Response:
     # Scope to the currently visible (filtered) subset — what you see is what runs.
     visible = shoots.filter_shoots(shoots.list_by_channel(), channel, date)
     pending = [s for shoot_list in visible.values() for s in shoot_list if s.status == "pending"]
@@ -200,9 +221,10 @@ def shoots_run_all(
         else:
             queued += 1
     if queued:
-        flash(request, f"Queued {queued} job{'s' if queued != 1 else ''}.", "success")
+        message, category = f"Queued {queued} job{'s' if queued != 1 else ''}.", "success"
     else:
-        flash(
-            request, last_error or "No pending shoots to run.", "danger" if last_error else "info"
+        message, category = (
+            last_error or "No pending shoots to run.",
+            "danger" if last_error else "info",
         )
-    return RedirectResponse(_shoots_url(channel, date), status_code=303)
+    return _run_response(request, db, message, category, channel, date)

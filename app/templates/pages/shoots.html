@@ -47,7 +47,12 @@
       </div>
       <div id="shoots-count-field">{% include "partials/jobs/_count_field.html" %}</div>
       <div>
-        <button type="submit" formaction="/shoots/run-all" class="btn-secondary w-full">Run all pending</button>
+        {# hx-post swaps only #shoots-list, leaving this picker form intact (BUG_004).
+           type=submit + formaction stays as the no-JS fallback (full POST → redirect). #}
+        <button type="submit" formaction="/shoots/run-all"
+          hx-post="/shoots/run-all" hx-include="closest form"
+          hx-target="#shoots-list" hx-swap="outerHTML"
+          class="btn-secondary w-full">Run all pending</button>
       </div>
     </div>
 

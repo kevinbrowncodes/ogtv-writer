@@ -82,6 +82,19 @@ def test_shoots_filter_by_channel(page: Page, live_server: str):
     expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
     expect(page.locator("#shoots-list")).not_to_contain_text("only-gains-tv")
 
+
+def test_run_all_pending_keeps_prompt_selection(page: Page, live_server: str):
+    # BUG_004: running shoots must not reset the picker. Pick a prompt, click Run all
+    # pending, and the prompt <select> should still hold that choice — the run now swaps
+    # only #shoots-list (HTMX) instead of reloading the whole page.
+    page.goto(f"{live_server}/shoots")
+    page.select_option("#prompt_slug", "video-review-prompt")
+    page.get_by_role("button", name="Run all pending").click()
+    # The list swaps to the queued/running state in place (a job was queued)...
+    expect(page.locator("#shoots-list")).to_contain_text("auto-refreshing")
+    # ...and the prompt selection survives (the old full-page redirect reset it to "").
+    expect(page.locator("#prompt_slug")).to_have_value("video-review-prompt")
+
     # Back to "All channels" shows everything again.
     page.locator("#shoot-channel-filter").select_option("")
     expect(page.locator("#shoots-list")).to_contain_text("test-shoot")
