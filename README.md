@@ -72,6 +72,11 @@ No React/Vue/Svelte. No bundler. The only Node usage is compiling Tailwind.
 
 ## Setup (first time only)
 
+> Running with **Docker**? Skip this whole section — go straight to
+> [Quick start](#quick-start). The steps below install Python, Node, and the
+> Playwright browser, and are only needed for **local development and the test
+> suite** — the container needs none of them.
+
 **Prerequisites:** Python 3.11+, Node 18+ (for Tailwind CSS), `make` (optional).
 
 ```bash
@@ -88,8 +93,7 @@ pip install -e ".[dev]"
 npm install
 python -m playwright install chromium
 npm run css:build
-# apply migrations, then seed sample data (tags + scripts)
-python -m app.migrations_runner
+# seed sample data (tags + scripts) — applies migrations first, so the schema is built
 python -m scripts.seed
 ```
 
@@ -107,7 +111,11 @@ python -m scripts.seed
 
 ## Quick start
 
-Once setup is done, this is all you need — **every time**:
+Two ways to run it — pick one.
+
+### Option A — Local (Python virtualenv)
+
+After [Setup](#setup-first-time-only), this is all you need — **every time**:
 
 ```bash
 source .venv/bin/activate
@@ -117,7 +125,7 @@ make dev
 Open **http://localhost:8000**. There's **no login** — it drops you straight on
 the dashboard. Stop the server with `Ctrl-C`.
 
-### Hot-reload while developing
+**Hot-reload while developing:**
 
 ```bash
 # terminal 1: rebuild Tailwind on template changes
@@ -127,6 +135,39 @@ make dev
 # ...or both at once:
 make dev-all
 ```
+
+### Option B — Docker (single container)
+
+No Python, virtualenv, Node, or Tailwind setup — just Docker and a `.env`. This
+is the everyday way to run it as a background service:
+
+```bash
+# One-time: create your .env (defaults work; add your Gemini key to enable generation)
+cp .env.example .env
+# Build + start detached; then open http://localhost:9001
+make docker-up
+```
+
+Open **http://localhost:9001** — same app, same dashboard, no login. The
+container runs in the background with `restart: unless-stopped`, so it survives
+closing the terminal and comes back after a reboot (as long as Docker Desktop
+auto-starts).
+
+```bash
+# Is it running? Prints a row when up, empty when down
+docker compose ps --status running
+# Follow the logs
+make docker-logs
+# Stop it (your ./data is kept)
+make docker-down
+# Down for any reason? This brings it back (rebuilds if needed)
+make docker-up
+```
+
+> **Page still loads with stale data but nothing responds?** The container is
+> probably stopped — the PWA service worker keeps serving a cached shell. Run
+> `make docker-up`, then hard-refresh (⌘⇧R). See [Docker](#docker) below for the
+> full details, the single-image alternative, and changing the port.
 
 ---
 
@@ -194,6 +235,7 @@ by [app/config.py](app/config.py).
 | `DATABASE_URL` | `sqlite:///./data/app.db` or a Postgres URL |
 | `AUTO_MIGRATE` | Apply migrations on startup (dev); set `false` in prod and run `make migrate` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini auth + model for the generator (blank = generation disabled) |
+| `BUILD_VERSION` | Build stamp shown in the footer + `/healthz`. Set by `make deploy` (`YYMMDD-HHMM`, US Eastern); blank locally = process-start time |
 | `FEATURE_DARK_MODE`, `FEATURE_DASHBOARD` | Feature flags |
 
 ---
@@ -244,6 +286,25 @@ make docker-run
 - **Generation is optional at boot.** The app starts even without a Gemini key; the key in
   `.env` only enables the generate feature.
 
+### Deploy a new build (and confirm which one is live)
+
+`make deploy` rebuilds the image, recreates the container, and stamps it with a
+**build version** — the date and time of the deploy in US Eastern (military) time,
+e.g. `Build 260618-0935`:
+
+```bash
+make deploy   # prints the build number when it finishes
+```
+
+That stamp shows up in two places, so you always know exactly which build is running:
+
+- the **sidebar footer** (bottom of the left nav), on every page, and
+- `curl -s localhost:9001/healthz` → `"build":"260618-0935"`.
+
+Running locally with `make dev` (no deploy)? The footer falls back to when the dev
+server started. The Eastern timezone resolves inside the slim container via the
+`tzdata` dependency.
+
 ### Run it in the background (and start at login)
 
 `make docker-run` stays in your terminal. To run it as a background service that survives
@@ -279,10 +340,11 @@ Two gotchas worth knowing:
   docker-down` (or `docker stop`), it stays down until you `make docker-up` again — Docker
   only auto-restores containers that were *running* when the daemon last exited. If the app
   is unexpectedly unreachable, this check is the first thing to run.
-- **Prompt files are baked into the image, not bind-mounted.** Everything under
-  `app/static/prompts/` is copied in at build time (only `./data` is a live mount). After
-  editing or adding a prompt, re-run `make docker-up` (it rebuilds) so the change reaches the
-  running container.
+- **Prompt files are read live from the host.** `app/static/prompts/` is bind-mounted
+  read-only into the container (alongside `./data`), so dropping or editing a `.md` brief in
+  that folder shows up in the UI on the next refresh — no image rebuild needed. (The folder
+  is still copied into the image at build time too, so the container also works standalone
+  without the mount.)
 
 Single-image alternative (mount `./data` yourself so data persists):
 

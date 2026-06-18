@@ -235,15 +235,18 @@ ogtv-writer/
 At the end of **every** chat session:
 
 1. **Commit and push all changes.** Stage modified files, commit with a meaningful message (e.g. `STORY_003: per-model avoid lists` or `Fix BUG_002: export filename slug`), and push to `origin develop`. **Double-check no git-ignored secret/state file (`.env`, `*.db`, `data/*`, built `app.css`) was force-added.**
-2. Review the conversation and ask: **"Does anything we discussed or built today require an update to `CLAUDE.md`?"**
-   - If **yes** — list the specific changes and **ask for approval before updating**.
-   - If **no** — explicitly state: **"No updates to `CLAUDE.md` needed this session."**
-3. Then ask: **"Does anything we built or discussed today require an update to `README.md` or `CUSTOMIZATION.md`?"**
-   - Update them when any of these are true:
+2. Review the conversation: if anything built or discussed affects `CLAUDE.md`,
+   **update it directly — no approval needed** — and state what changed. If nothing
+   does, state: **"No updates to `CLAUDE.md` needed this session."**
+3. Likewise for `README.md` / `CUSTOMIZATION.md`: **update them directly (no approval
+   needed)**, then state what changed, whenever any of these are true:
      - A new feature, entity, or route is complete and working
      - The run/setup commands or Make targets change
      - New dependencies are added ([pyproject.toml](pyproject.toml) / [package.json](package.json))
      - A new config field or feature flag is introduced
      - The folder structure changes
-   - If **yes** — list the sections to update and **ask for approval before making changes**.
-   - If **no** — explicitly state: **"No updates to `README.md` / `CUSTOMIZATION.md` needed this session."**
+   - If none apply, state: **"No updates to `README.md` / `CUSTOMIZATION.md` needed this session."**
+
+> The operator has standing approval for docs upkeep: make warranted `CLAUDE.md`,
+> `README.md`, and `CUSTOMIZATION.md` edits automatically (don't ask first) — just
+> report what you changed.
