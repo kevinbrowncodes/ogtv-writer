@@ -78,3 +78,4 @@ THE CLIMAX:
 CAMERA:
 {{CAMERA}}
 [Specify motivated camera behavior: static, handheld, push-in, tracking, etc. Camera movement must remain physically plausible and continuous.]
+```

@@ -243,5 +243,8 @@ app/static/css/app.css
 # Local editor scratch (the rest of .vscode/ IS tracked for shared settings)
 .vscode/*.local.json
 
+# VS Code multi-root workspace files (operator-local; not committed)
+*.code-workspace
+
 # macOS Finder cruft
 .DS_Store
