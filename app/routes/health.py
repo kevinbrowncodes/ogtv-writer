@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app import __version__
 from app.config import get_settings
+from app.version import resolve_build_version
 
 router = APIRouter(tags=["meta"])
 
@@ -17,5 +18,6 @@ def healthz() -> dict[str, str]:
         "status": "ok",
         "app": settings.app_name,
         "version": __version__,
+        "build": resolve_build_version(),
         "environment": settings.environment,
     }

@@ -24,6 +24,11 @@ ENV PYTHONUNBUFFERED=1 \
     HOST=0.0.0.0 \
     PORT=8000
 
+# Build stamp baked in at image-build time (passed by `make deploy`); surfaced in
+# the UI footer and /healthz so you can confirm exactly which build is running.
+ARG BUILD_VERSION=""
+ENV BUILD_VERSION=$BUILD_VERSION
+
 WORKDIR /app
 
 # Install the app + dependencies. Copy metadata + source, then `pip install .`.

@@ -19,6 +19,7 @@ from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
 from app.config import get_settings
+from app.version import resolve_build_version
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
@@ -26,6 +27,11 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 # --- Context processors: injected into EVERY template render -----------------
 def _settings_context(request: Request) -> dict[str, Any]:
     return {"settings": get_settings()}
+
+
+def _build_context(request: Request) -> dict[str, Any]:
+    """Expose the running build stamp (footer) to every template."""
+    return {"build_version": resolve_build_version()}
 
 
 def _request_context(request: Request) -> dict[str, Any]:
@@ -46,7 +52,7 @@ def _flash_context(request: Request) -> dict[str, Any]:
 
 templates = Jinja2Templates(
     directory=str(TEMPLATES_DIR),
-    context_processors=[_settings_context, _request_context, _flash_context],
+    context_processors=[_settings_context, _request_context, _flash_context, _build_context],
 )
 
 # Reload templates from disk on each render in development (set on the Jinja

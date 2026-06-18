@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     app_description: str = "OnlyGainsTV Writer — generate, organize, and export AI video scripts."
     brand_name: str = "OnlyGainsTV"
 
+    # Build stamp (YYMMDD-HHMM, US Eastern) baked into the image at deploy by
+    # `make deploy` and shown in the footer + /healthz. Left blank locally — the app
+    # then falls back to the process start time (see app/version.py).
+    build_version: str = ""
+
     # --- Environment ----------------------------------------------------------
     environment: Environment = "development"
     debug: bool = True

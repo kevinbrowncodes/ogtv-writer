@@ -10,7 +10,11 @@
 
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        # Stamped by `make deploy` so the image carries its build version.
+        BUILD_VERSION: "${BUILD_VERSION:-}"
     # Pin the built image's name so `make docker-build` and Compose produce the SAME
     # image. Without this, Compose auto-names it <project>-<service> (ogtv-writer-web)
     # while `docker build -t ogtv-writer` tags ogtv-writer — two images, only one ever

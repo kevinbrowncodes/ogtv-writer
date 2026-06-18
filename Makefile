@@ -103,6 +103,13 @@ docker-run: ## Run the app via docker compose (foreground; logs in this terminal
 docker-up: ## Run the app detached (background); survives terminal close + auto-restarts
 	docker compose up -d --build
 
+.PHONY: deploy
+deploy: ## Stamp a build version (Eastern), rebuild the image, recreate the container, print it
+	@BUILD_VERSION=$$($(PYTHON) -c "from app.version import current_build_stamp; print(current_build_stamp())"); \
+	echo "Deploying build $$BUILD_VERSION ..."; \
+	BUILD_VERSION=$$BUILD_VERSION docker compose up -d --build --force-recreate; \
+	echo "✅ Deployed  Build $$BUILD_VERSION  →  http://localhost:$${WEB_PORT:-9001}  (verify: curl -s localhost:$${WEB_PORT:-9001}/healthz)"
+
 .PHONY: docker-down
 docker-down: ## Stop and remove the background container (keeps host ./data)
 	docker compose down
