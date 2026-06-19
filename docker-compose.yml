@@ -42,4 +42,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    restart: unless-stopped
+    # `always` (not `unless-stopped`) so the container auto-starts whenever the
+    # Docker daemon does — including after a reboot when Docker Desktop launches
+    # at login, and even if it had been manually `docker compose stop`ped. The
+    # daemon restarts existing containers on its own; no LaunchAgent is needed
+    # (a launchd agent can't read the project under ~/Documents anyway — macOS
+    # TCC blocks it). Only `docker compose down` removes the container and so
+    # disables auto-start — use `make docker-stop` to stop without removing.
+    restart: always

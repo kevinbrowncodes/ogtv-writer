@@ -111,12 +111,16 @@ deploy: ## Stamp a build version (Eastern), rebuild the image, recreate the cont
 	echo "✅ Deployed  Build $$BUILD_VERSION  →  http://localhost:$${WEB_PORT:-9001}  (verify: curl -s localhost:$${WEB_PORT:-9001}/healthz)"
 
 .PHONY: docker-down
-docker-down: ## Stop and remove the background container (keeps host ./data)
+docker-down: ## Remove the container (use docker-stop to keep auto-start at login)
 	docker compose down
 
 .PHONY: docker-logs
 docker-logs: ## Tail the running container's logs
 	docker compose logs -f web
+
+.PHONY: docker-stop
+docker-stop: ## Stop the container WITHOUT removing it (so it auto-starts next login)
+	docker compose stop
 
 # --- Housekeeping -------------------------------------------------------------
 .PHONY: clean

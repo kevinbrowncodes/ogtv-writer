@@ -149,16 +149,18 @@ make docker-up
 ```
 
 Open **http://localhost:9001** — same app, same dashboard, no login. The
-container runs in the background with `restart: unless-stopped`, so it survives
-closing the terminal and comes back after a reboot (as long as Docker Desktop
-auto-starts).
+container runs in the background with `restart: always`, so it survives closing
+the terminal and **comes back automatically after a reboot** (as long as Docker
+Desktop auto-starts — see [Start at login](#run-it-in-the-background-and-start-at-login)).
 
 ```bash
 # Is it running? Prints a row when up, empty when down
 docker compose ps --status running
 # Follow the logs
 make docker-logs
-# Stop it (your ./data is kept)
+# Stop it but KEEP it (so it auto-starts again next login)
+make docker-stop
+# Remove it entirely (disables auto-start until you `make docker-up` again)
 make docker-down
 # Down for any reason? This brings it back (rebuilds if needed)
 make docker-up
@@ -315,15 +317,27 @@ closing the terminal and comes back after a reboot:
 make docker-up
 # Follow the logs when you want them
 make docker-logs
-# Stop and remove the container (your ./data is kept)
+# Stop it but KEEP the container (so it auto-starts again next login)
+make docker-stop
+# Remove the container entirely (your ./data is kept)
 make docker-down
 ```
 
-The container uses `restart: unless-stopped`, so once started with `make docker-up` Docker
-restarts it automatically whenever the Docker daemon starts — **provided Docker Desktop
-itself auto-starts.** Enable that one-time in **Docker Desktop → Settings → General →
-"Start Docker Desktop when you sign in to your computer."** (On macOS this is start-at-login,
-not pre-login boot.)
+The container uses `restart: always`, so once started with `make docker-up` the Docker
+daemon restarts it automatically whenever the daemon itself starts — including after a
+reboot — and even if you'd `make docker-stop`ped it. This needs two things:
+
+1. **Docker Desktop auto-starts.** Enable it one-time in **Docker Desktop → Settings →
+   General → "Start Docker Desktop when you sign in to your computer."** (On macOS this is
+   start-at-login, not pre-login boot.)
+2. **The container still exists.** The daemon can only restart a container it knows about,
+   so don't `make docker-down` it for routine stops — use `make docker-stop` instead.
+
+> **Why not a LaunchAgent that runs `docker compose up -d` at login?** Tried it; macOS TCC
+> blocks a `launchd` agent from reading the project under `~/Documents` ("Operation not
+> permitted") unless you grant Full Disk Access to `/bin/bash` — broad and clunky. The
+> `restart: always` policy needs none of that: the daemon restarts the container on its own,
+> never touching the protected folder.
 
 Check whether it's actually running — and bring it back if not:
 
@@ -336,10 +350,11 @@ make docker-up
 
 Two gotchas worth knowing:
 
-- **`unless-stopped` won't revive a container you stopped on purpose.** After `make
-  docker-down` (or `docker stop`), it stays down until you `make docker-up` again — Docker
-  only auto-restores containers that were *running* when the daemon last exited. If the app
-  is unexpectedly unreachable, this check is the first thing to run.
+- **`make docker-down` disables auto-start.** It *removes* the container, and the daemon can
+  only auto-restart a container that still exists — so after a `down` (or `docker rm`) the
+  app stays down until you `make docker-up` again. For a routine stop that still comes back
+  next login, use `make docker-stop`. If the app is unexpectedly unreachable, the
+  `docker compose ps` check above is the first thing to run.
 - **Prompt files are read live from the host.** `app/static/prompts/` is bind-mounted
   read-only into the container (alongside `./data`), so dropping or editing a `.md` brief in
   that folder shows up in the UI on the next refresh — no image rebuild needed. (The folder
