@@ -122,6 +122,58 @@ def test_list_by_channel_groups_nested_shoots_under_channel(source_root):
     }
 
 
+def test_stray_subfolder_does_not_hide_a_framed_shoot(source_root):
+    # BUG_005: a shoot that has its 01.* frame but also a stray subfolder must still be
+    # listed as the shoot — and the stray subfolder must not appear in its place.
+    shoot = _make_nested_shoot(source_root, "youtube", "26-06-20", "26-06-20-0800")
+    (shoot / "untitled folder").mkdir()  # stray empty subfolder left in Finder
+    (shoot / "seed.jpeg").write_bytes(b"x")  # an extra (ignored) image alongside it
+
+    by_channel = shoots.list_by_channel()
+    names = {s.name: s.status for s in by_channel["youtube"]}
+    assert names == {"26-06-20-0800": "pending"}  # the shoot, runnable
+    assert "untitled folder" not in names  # the stray subfolder is never surfaced
+
+    rels = {s.rel_dir for s in shoots.list_shoots()}
+    assert "youtube/26-06-20/26-06-20-0800" in rels
+    assert all("untitled folder" not in r for r in rels)
+
+
+def test_stray_subfolder_inside_flat_shoot_also_handled(source_root):
+    # BUG_005, flat layout: frame + stray subfolder at depth 1 still lists as the shoot.
+    shoot = _make_shoot(source_root, "only-gains-tv", "26-brown", "01.jpg")
+    (shoot / "scratch").mkdir()
+
+    by_channel = shoots.list_by_channel()
+    assert {s.name: s.status for s in by_channel["only-gains-tv"]} == {"26-brown": "pending"}
+
+
+def test_archive_excluded_by_default():
+    # BUG_006: the shipped default hides "archive" (and "wip"). Asserted against the
+    # field default so it's independent of any developer's local .env.
+    from app.config import Settings
+
+    default = str(Settings.model_fields["shoots_excluded_channels"].default)
+    assert "archive" in default.split(",")
+    assert "wip" in default.split(",")
+
+
+def test_excluded_folder_setting_matches_nested_names(source_root, monkeypatch):
+    # BUG_006: an archived shoot nested under a channel must not leak into the live
+    # views — the exclusion applies at any depth, not just to top-level channels.
+    monkeypatch.setenv("SHOOTS_EXCLUDED_CHANNELS", "archive")
+    get_settings.cache_clear()
+    _make_nested_shoot(source_root, "youtube", "26-06-20", "26-06-20-0000")  # live shoot
+    done = _make_nested_shoot(source_root, "youtube", "archive", "26-06-20-2000")
+    (done / "script.txt").write_text("x")  # archived + done
+
+    names = {s.name for s in shoots.list_by_channel()["youtube"]}
+    assert names == {"26-06-20-0000"}  # only the live shoot; the archived one is hidden
+
+    rels = {s.rel_dir for s in shoots.list_shoots()}  # the job picker hides it too
+    assert all("archive" not in r for r in rels)
+
+
 def test_resolve_handles_nested_rel_dir_rejects_grouping_folder(source_root):
     _make_nested_shoot(source_root, "youtube", "26-06-07", "26-06-07-0000")
 

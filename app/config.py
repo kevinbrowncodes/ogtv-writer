@@ -64,9 +64,11 @@ class Settings(BaseSettings):
     # jobs read the frame from here and write the produced scripts back into the folder.
     source_root: str = "data/logline"
 
-    # Channel folders under SOURCE_ROOT to hide from the Shoots dashboard entirely
-    # (dropdown + list). Comma-separated; e.g. work-in-progress folders not ready to run.
-    shoots_excluded_channels: str = "wip"
+    # Folder names to hide from the Shoots dashboard + job picker entirely, matched at
+    # ANY depth under SOURCE_ROOT (a top-level "wip" channel and a nested "archive"
+    # grouping are both skipped). Comma-separated; e.g. work-in-progress or archived
+    # shoots not meant to appear in the live views.
+    shoots_excluded_channels: str = "wip,archive"
 
     # --- Server ---------------------------------------------------------------
     host: str = "0.0.0.0"

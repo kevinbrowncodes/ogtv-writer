@@ -78,20 +78,29 @@ def _read_context(directory: Path) -> str:
     return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
-def _shoot_dirs(channel_dir: Path) -> Iterator[Path]:
-    """Yield the leaf directories under a channel — the shoots, at any depth.
+def _shoot_dirs(parent: Path, excluded: set[str]) -> Iterator[Path]:
+    """Yield the shoot directories under ``parent`` — at any depth.
 
-    A shoot folder holds one shoot's assets and no further subfolders, so a directory
-    with no subdirectories is a shoot; one that *has* subdirectories is treated as a
-    grouping level (e.g. a date) and recursed into. This finds shoots in both the flat
+    A directory that holds an ``01.*`` frame **is** a shoot and is yielded without
+    recursing into it, so a stray subfolder left inside a shoot can't hide it
+    (BUG_005). A frameless directory that *has* subdirectories is a grouping level
+    (e.g. a date, or ``archive``) and is recursed into; a frameless leaf is yielded so
+    the dashboard can flag it ``needs 01.*``. This finds shoots in both the flat
     (``<channel>/<shoot>/``) and grouped (``<channel>/<date>/<shoot>/``) layouts.
+
+    Folders whose name is in ``excluded`` are skipped wherever they appear in the tree,
+    so e.g. an ``archive`` grouping nested under a channel is hidden (BUG_006).
     """
-    subdirs = sorted(p for p in channel_dir.iterdir() if p.is_dir())
+    subdirs = sorted(p for p in parent.iterdir() if p.is_dir())
     for sub in subdirs:
-        if any(p.is_dir() for p in sub.iterdir()):
-            yield from _shoot_dirs(sub)
+        if sub.name in excluded:
+            continue
+        if _find_frame(sub) is not None:
+            yield sub  # has a frame → a shoot; never recurse into stray subfolders
+        elif any(p.is_dir() for p in sub.iterdir()):
+            yield from _shoot_dirs(sub, excluded)  # grouping level → recurse
         else:
-            yield sub
+            yield sub  # frameless leaf → surfaced as "needs 01.*"
 
 
 def _shoot(shoot_dir: Path) -> Shoot:
@@ -110,13 +119,20 @@ def _shoot(shoot_dir: Path) -> Shoot:
 
 
 def list_shoots() -> list[Shoot]:
-    """Every shoot under SOURCE_ROOT that has an 01.* frame, sorted by channel/path."""
+    """Every shoot under SOURCE_ROOT that has an 01.* frame, sorted by channel/path.
+
+    Excluded folders (``SHOOTS_EXCLUDED_CHANNELS``) are skipped at any depth, so e.g.
+    an ``archive`` grouping never reaches the job picker.
+    """
     root = _root()
     if not root.is_dir():
         return []
+    excluded = _excluded_channels()
     shoots: list[Shoot] = []
     for channel_dir in sorted(p for p in root.iterdir() if p.is_dir()):
-        for shoot_dir in _shoot_dirs(channel_dir):
+        if channel_dir.name in excluded:
+            continue
+        for shoot_dir in _shoot_dirs(channel_dir, excluded):
             if _find_frame(shoot_dir):
                 shoots.append(_shoot(shoot_dir))
     return shoots
@@ -135,7 +151,7 @@ def list_by_channel() -> dict[str, list[Shoot]]:
     for channel_dir in sorted(p for p in root.iterdir() if p.is_dir()):
         if channel_dir.name in excluded:
             continue
-        shoots = [_shoot(d) for d in _shoot_dirs(channel_dir)]
+        shoots = [_shoot(d) for d in _shoot_dirs(channel_dir, excluded)]
         if shoots:
             by_channel[channel_dir.name] = shoots
     return by_channel
