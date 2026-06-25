@@ -51,6 +51,13 @@ then fail with a clear message. The single seam is
 different provider without touching routes, parsing, the library, or export. Tests
 mock it, so the suite never makes a live, paid call.
 
+> **Key not working?** If the Model picker only offers the default model, the live
+> model list couldn't be fetched — the picker now shows a "Gemini unavailable"
+> banner with the reason (e.g. a rejected/rotated key). Run **`make gemini-check`**
+> to confirm: it prints `✅ valid (N models)` or `❌ <reason>` using only the free
+> model-list call (never a paid generation). After editing the key in `.env`, recreate
+> the container so it reloads: `docker compose up -d --force-recreate`.
+
 ---
 
 ## Stack
