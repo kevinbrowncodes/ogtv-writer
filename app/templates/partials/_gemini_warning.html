@@ -1,0 +1,10 @@
+{# Gemini connectivity warning — shown by the model picker when the live model list
+   can't be fetched (no key / rejected key / network). STORY_023. Uses the danger
+   palette (a broken connection blocks generation), mirroring the failed-job banner. #}
+{% if gemini and not gemini.ok %}
+<div class="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
+  <span class="font-medium">Gemini unavailable.</span>
+  {{ gemini.detail }}
+  Showing the default model only — generation will fail until this is fixed.
+</div>
+{% endif %}

@@ -52,6 +52,10 @@ run: ## Run the server without reload (production-like)
 seed: ## Create sample data (tags + scripts)
 	$(PYTHON) -m scripts.seed
 
+.PHONY: gemini-check
+gemini-check: ## Check the configured Gemini API key is valid (free; no generation)
+	$(PYTHON) -m scripts.gemini_check
+
 .PHONY: migrate
 migrate: ## Apply migrations to head (adopts an existing pre-migration DB safely)
 	$(PYTHON) -m app.migrations_runner

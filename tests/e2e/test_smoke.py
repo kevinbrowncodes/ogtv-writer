@@ -71,6 +71,13 @@ def test_shoots_dashboard_lists_pending(page: Page, live_server: str):
     expect(page.locator("#shoots-list")).to_contain_text("Run")
 
 
+def test_shoots_warns_when_gemini_unavailable(page: Page, live_server: str):
+    # The e2e server runs with a blank GEMINI_API_KEY, so the model picker surfaces the
+    # "Gemini unavailable" warning rather than silently showing only the default (STORY_023).
+    page.goto(f"{live_server}/shoots")
+    expect(page.locator("body")).to_contain_text("Gemini unavailable")
+
+
 def test_shoots_filter_by_channel(page: Page, live_server: str):
     page.goto(f"{live_server}/shoots")
     # Both seeded channels are visible with no filter.

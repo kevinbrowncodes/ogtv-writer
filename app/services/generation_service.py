@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -47,27 +48,58 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-_models_cache: list[str] | None = None
+@dataclass(frozen=True)
+class GeminiStatus:
+    """Whether the live Gemini model list could be fetched, and what to show.
+
+    ``models`` always contains at least the configured default so the picker never
+    renders empty. ``ok`` is False when the list couldn't be fetched (no key / rejected
+    key / network); ``detail`` then explains why, for the operator (STORY_023).
+    """
+
+    models: list[str]
+    ok: bool
+    detail: str
+
+
+_status_cache: GeminiStatus | None = None
+
+
+def gemini_status() -> GeminiStatus:
+    """Cached Gemini availability + selectable models for this process.
+
+    A successful fetch is cached for the process lifetime. A failure (no key / rejected
+    key / network) is NOT cached and falls back to just the configured default — so the
+    picker keeps working and the status self-heals once the key is fixed, no restart.
+    """
+    global _status_cache
+    if _status_cache is not None:
+        return _status_cache
+    settings = get_settings()
+    default = settings.gemini_model
+    if not settings.gemini_api_key:
+        return GeminiStatus(
+            models=[default],
+            ok=False,
+            detail="No GEMINI_API_KEY configured — set one to enable generation.",
+        )
+    probe = gemini_client.probe_models(settings.gemini_api_key)
+    if not probe.ok or not probe.models:
+        detail = probe.reason or "Gemini returned no usable models."
+        log.warning("Gemini model list unavailable: %s", detail)
+        return GeminiStatus(models=[default], ok=False, detail=detail)
+    models = probe.models if default in probe.models else [default, *probe.models]
+    status = GeminiStatus(models=models, ok=True, detail="")
+    _status_cache = status
+    return status
 
 
 def available_models() -> list[str]:
-    """Selectable Gemini models, cached for the process; always includes the default.
+    """Selectable Gemini models, always including the configured default.
 
-    Fetched live once. On failure/empty it falls back to just the configured default
-    and is NOT cached, so it retries once a key/connection is available.
+    Thin accessor over :func:`gemini_status` (single fetch path + shared cache).
     """
-    global _models_cache
-    settings = get_settings()
-    default = settings.gemini_model
-    if _models_cache is not None:
-        return _models_cache
-    models = gemini_client.list_models(settings.gemini_api_key) if settings.gemini_api_key else []
-    if not models:
-        return [default]
-    if default not in models:
-        models = [default, *models]
-    _models_cache = models
-    return models
+    return gemini_status().models
 
 
 def assemble_prompt(body: str, *, count: int | None, addendum: str) -> str:

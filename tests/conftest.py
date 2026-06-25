@@ -55,6 +55,22 @@ def _fresh_database(request):
     Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _reset_gemini_status_cache():
+    """Clear the process-wide Gemini status cache around every test.
+
+    ``generation_service.gemini_status()`` caches a successful probe for the process;
+    without this, a test that mocks a working key would leak its cached models into a
+    later test that expects the no-key warning. (Harmless for e2e — the live server
+    runs in its own process.)
+    """
+    from app.services import generation_service
+
+    generation_service._status_cache = None
+    yield
+    generation_service._status_cache = None
+
+
 @pytest.fixture
 def db() -> Session:
     """A database session for arrange/assert steps in tests."""

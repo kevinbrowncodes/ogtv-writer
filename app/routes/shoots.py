@@ -69,6 +69,7 @@ def shoots_page(request: Request, db: DbSession, channel: str = "", date: str = 
             "prompts": prompt_catalog.list_prompts(),
             "models": generation_service.available_models(),
             "default_model": get_settings().gemini_model,
+            "gemini": generation_service.gemini_status(),
             "source_root": get_settings().source_root,
         },
     )

@@ -7,6 +7,7 @@ importing the app at rest does not require the package to be installed.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -71,12 +72,40 @@ _NON_TEXT_MARKERS = (
 )
 
 
-def list_models(api_key: str) -> list[str]:
-    """Return the Gemini text-generation models this key can use (best-effort).
+@dataclass(frozen=True)
+class ModelProbe:
+    """Result of asking Gemini for the models a key can use.
 
-    Keeps models that support ``generateContent`` and drops non-text modalities
-    (see ``_NON_TEXT_MARKERS``). Returns ``[]`` on any error so callers can fall
-    back gracefully. The SDK is imported lazily, same as ``generate``.
+    ``ok`` is False when the list couldn't be fetched, in which case ``models`` is
+    empty and ``reason`` carries a short, operator-readable explanation (e.g. a
+    rejected key) for the UI to surface (STORY_023).
+    """
+
+    models: list[str]
+    ok: bool
+    reason: str
+
+
+def _probe_reason(exc: Exception) -> str:
+    """Map a model-list failure to a short, operator-readable reason."""
+    text = str(exc)
+    if "API_KEY_INVALID" in text or "API key not valid" in text:
+        return "API key rejected — check GEMINI_API_KEY (API_KEY_INVALID)."
+    if "PERMISSION_DENIED" in text or "SERVICE_DISABLED" in text:
+        return "Permission denied — the key can't access this project/API (PERMISSION_DENIED)."
+    if _is_transient(exc):
+        return "Couldn't reach Gemini (network or rate-limit error) — try again shortly."
+    return f"Gemini error: {type(exc).__name__}."
+
+
+def probe_models(api_key: str) -> ModelProbe:
+    """Fetch the usable text-generation models for ``api_key``.
+
+    Keeps models that support ``generateContent`` and drops non-text modalities (see
+    ``_NON_TEXT_MARKERS``). Unlike :func:`list_models`, this does NOT swallow the cause:
+    on failure it returns ``ok=False`` with a short ``reason``, so the UI can explain
+    why only the default model is available. The SDK is imported lazily, same as
+    ``generate``.
     """
     try:
         from google import genai
@@ -90,9 +119,18 @@ def list_models(api_key: str) -> list[str]:
             name = (model.name or "").split("/")[-1]
             if name and not any(marker in name for marker in _NON_TEXT_MARKERS):
                 names.append(name)
-        return sorted(names)
-    except Exception:
-        return []
+        return ModelProbe(models=sorted(names), ok=True, reason="")
+    except Exception as exc:
+        return ModelProbe(models=[], ok=False, reason=_probe_reason(exc))
+
+
+def list_models(api_key: str) -> list[str]:
+    """Return the Gemini text-generation models this key can use (best-effort).
+
+    Thin wrapper over :func:`probe_models` for callers that only need the names;
+    returns ``[]`` on any error (the reason is available via :func:`probe_models`).
+    """
+    return probe_models(api_key).models
 
 
 def _block_reason(response: Any) -> str:

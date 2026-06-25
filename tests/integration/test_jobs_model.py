@@ -36,6 +36,14 @@ def test_new_job_form_lists_models_with_price(client):
     assert "per 1M tok" in resp.text  # a known model's reference price renders
 
 
+def test_new_job_form_warns_when_gemini_unavailable(client):
+    # available_models is patched to a known list (fixture), but gemini_status sees the
+    # blank test key — so the form still surfaces the "unavailable" warning (STORY_023).
+    resp = client.get("/jobs/new")
+    assert resp.status_code == 200
+    assert "Gemini unavailable" in resp.text
+
+
 def test_submit_stores_chosen_model(client, db):
     resp = client.post(
         "/jobs",

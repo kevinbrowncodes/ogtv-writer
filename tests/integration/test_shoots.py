@@ -9,7 +9,7 @@ import pytest
 
 from app.config import get_settings
 from app.routes.shoots import MAX_ADDENDUM
-from app.services import job_service, shoots
+from app.services import generation_service, job_service, shoots
 
 VEO = "video-review-prompt"  # fixture prompt (no {{COUNT}})
 
@@ -45,6 +45,29 @@ def test_dashboard_lists_channels_and_status(client):
     assert "26-orange" in resp.text
     assert "Pending" in resp.text
     assert "Done" in resp.text
+
+
+def test_dashboard_warns_when_gemini_unavailable(client):
+    # The test env forces GEMINI_API_KEY="" → the live model list can't be fetched, so
+    # the picker surfaces a clear warning instead of silently showing the default only.
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    assert "Gemini unavailable" in resp.text
+    assert "GEMINI_API_KEY" in resp.text
+
+
+def test_dashboard_no_warning_when_gemini_ok(client, monkeypatch):
+    monkeypatch.setattr(
+        generation_service,
+        "gemini_status",
+        lambda: generation_service.GeminiStatus(
+            models=["gemini-2.5-flash", "gemini-2.5-pro"], ok=True, detail=""
+        ),
+    )
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    assert "Gemini unavailable" not in resp.text
+    assert "gemini-2.5-pro" in resp.text  # the full live list is shown
 
 
 def test_run_queues_folder_job_for_pending_shoot(client, db):
