@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Server not running · OGTV Writer</title>
+    <!-- Self-contained on purpose: this page is shown precisely when the backend
+         is unreachable, so it must not depend on a server round trip (STORY_024). -->
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: #0b0f17;
+        color: #e2e8f0;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 1rem;
+      }
+      .card {
+        text-align: center;
+        max-width: 26rem;
+      }
+      .badge {
+        font-size: 2.5rem;
+        line-height: 1;
+      }
+      h1 {
+        font-size: 1.375rem;
+        margin: 1rem 0 0.5rem;
+      }
+      p {
+        color: #94a3b8;
+        margin: 0 0 1.5rem;
+        line-height: 1.5;
+      }
+      code {
+        background: #1f2937;
+        border-radius: 0.25rem;
+        padding: 0.1rem 0.35rem;
+      }
+      button {
+        padding: 0.55rem 1.25rem;
+        border-radius: 0.5rem;
+        border: 0;
+        background: #a78bfa;
+        color: #0b0f17;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+      button:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">⚠️</div>
+      <h1>Server not running</h1>
+      <p>
+        OGTV Writer can’t reach its backend, so there’s nothing live to show — and we
+        won’t serve you a stale cached copy. Start the container (<code>make docker-up</code>),
+        then reload.
+      </p>
+      <button onclick="location.reload()">Reload</button>
+    </div>
+  </body>
+</html>

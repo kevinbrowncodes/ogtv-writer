@@ -71,6 +71,25 @@ def test_shoots_dashboard_lists_pending(page: Page, live_server: str):
     expect(page.locator("#shoots-list")).to_contain_text("Run")
 
 
+def test_offline_navigation_shows_server_not_running(page: Page, live_server: str):
+    # STORY_024: with the service worker controlling the page, a navigation that can't
+    # reach the backend must show the honest "Server not running" page — never a stale
+    # cached copy.
+    page.goto(f"{live_server}/dashboard")
+    # Wait until the service worker has claimed the page (it controls navigations).
+    page.wait_for_function(
+        "navigator.serviceWorker && navigator.serviceWorker.controller !== null",
+        timeout=10000,
+    )
+    # Simulate the container/Docker being down.
+    page.context.set_offline(True)
+    page.goto(f"{live_server}/shoots")
+    expect(page.locator("body")).to_contain_text("Server not running")
+    # The stale dashboard/shoots content is NOT shown.
+    expect(page.locator("body")).not_to_contain_text("Run all pending")
+    page.context.set_offline(False)
+
+
 def test_shoots_warns_when_gemini_unavailable(page: Page, live_server: str):
     # The e2e server runs with a blank GEMINI_API_KEY, so the model picker surfaces the
     # "Gemini unavailable" warning rather than silently showing only the default (STORY_023).
