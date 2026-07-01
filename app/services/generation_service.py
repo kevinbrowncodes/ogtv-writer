@@ -20,11 +20,36 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.domain import PROVIDER_LABELS, price_label
 from app.models.job import Job
-from app.services import gemini_client, output_parser, prompt_catalog, script_service, shoots
+from app.services import (
+    gemini_client,
+    llm_errors,
+    local_client,
+    output_parser,
+    prompt_catalog,
+    script_service,
+    shoots,
+)
 from app.services.uploads import PROJECT_ROOT
 
 log = logging.getLogger(__name__)
+
+# Local model values are namespaced ``local:<name>`` in the picker + on the job, so the
+# worker can route to the right provider deterministically — without the local endpoint
+# having to be reachable at submit time. Un-namespaced values stay Gemini (back-compat).
+LOCAL_PREFIX = "local:"
+
+
+def _split_model(model_value: str) -> tuple[str, str]:
+    """Return ``(provider, model_name)`` for a stored job/picker model value.
+
+    A ``local:<name>`` value routes to the local provider; anything else is Gemini.
+    """
+    if model_value.startswith(LOCAL_PREFIX):
+        return "local", model_value[len(LOCAL_PREFIX) :]
+    return "gemini", model_value
+
 
 # Output contract: we ask Gemini to wrap its parts in these markers so STORY_004
 # can split the response reliably. Prototyped here; finalized in the parser story.
@@ -102,6 +127,71 @@ def available_models() -> list[str]:
     return gemini_status().models
 
 
+def local_models() -> list[str]:
+    """Selectable local models as namespaced ``local:<name>`` values (STORY_025).
+
+    Returns ``[]`` when the local provider isn't configured (blank base URL). Uses the
+    curated ``LOCAL_MODEL_NAMES`` allowlist when set — so the picker shows a couple of
+    sane choices rather than every alias — and otherwise falls back to the live
+    ``/v1/models`` list. AEON is assumed always online, so there's no self-heal cache.
+    """
+    settings = get_settings()
+    if not settings.local_model_base_url:
+        return []
+    curated = [name.strip() for name in settings.local_model_names.split(",") if name.strip()]
+    if curated:
+        names = curated
+    else:
+        probe = local_client.probe_models(
+            settings.local_model_base_url, settings.local_model_api_key
+        )
+        names = probe.models
+    return [f"{LOCAL_PREFIX}{name}" for name in names]
+
+
+def selectable_models() -> list[str]:
+    """Every model *value* the pickers accept for validation: Gemini + namespaced local."""
+    return [*available_models(), *local_models()]
+
+
+@dataclass(frozen=True)
+class ModelOption:
+    """One selectable model in the picker (an ``<option>``)."""
+
+    value: str  # what's posted + stored on the job (e.g. "gemini-2.5-flash" or "local:aeon-fast")
+    label: str  # what's shown (the bare model name)
+    price: str  # a short price/pricing note ("$… per 1M tok", "—", or "self-hosted")
+
+
+@dataclass(frozen=True)
+class ModelGroup:
+    """A provider's models, rendered as one ``<optgroup>``."""
+
+    provider: str
+    label: str
+    options: list[ModelOption]
+
+
+def model_options() -> list[ModelGroup]:
+    """Grouped model options for the picker — a Gemini group + a Local group (STORY_025).
+
+    A provider group is omitted when it has no models (so the Local group only appears
+    when the local provider is configured). The Gemini group derives from
+    :func:`available_models` so an operator-patched list still flows through.
+    """
+    groups: list[ModelGroup] = []
+    gemini = [ModelOption(value=m, label=m, price=price_label(m)) for m in available_models()]
+    if gemini:
+        groups.append(ModelGroup("gemini", PROVIDER_LABELS["gemini"], gemini))
+    local = [
+        ModelOption(value=value, label=_split_model(value)[1], price="self-hosted")
+        for value in local_models()
+    ]
+    if local:
+        groups.append(ModelGroup("local", PROVIDER_LABELS["local"], local))
+    return groups
+
+
 def assemble_prompt(body: str, *, count: int | None, addendum: str) -> str:
     """Build the final prompt sent to Gemini.
 
@@ -144,17 +234,28 @@ def _generate_with_retries(
     short backoff; any other error (including a content block) propagates immediately.
     """
     max_attempts = max(1, settings.max_attempts)
+    provider, model_name = _split_model(job.model or settings.gemini_model)
     while True:
         job.attempts += 1
         try:
+            image_bytes = _read_image(job.image_path)
+            if provider == "local":
+                return local_client.generate(
+                    prompt=assembled,
+                    image_bytes=image_bytes,
+                    image_mime=mime,
+                    model=model_name,
+                    base_url=settings.local_model_base_url,
+                    api_key=settings.local_model_api_key,
+                )
             return gemini_client.generate(
                 prompt=assembled,
-                image_bytes=_read_image(job.image_path),
+                image_bytes=image_bytes,
                 image_mime=mime,
-                model=job.model or settings.gemini_model,
+                model=model_name,
                 api_key=settings.gemini_api_key,
             )
-        except gemini_client.RetryableError as exc:
+        except llm_errors.RetryableError as exc:
             if job.attempts >= max_attempts:
                 raise
             log.warning(
@@ -177,7 +278,15 @@ def run_job(db: Session, job: Job) -> None:
     """
     settings = get_settings()
     try:
-        if not settings.gemini_api_key:
+        # Require only the provider this job actually uses to be configured (STORY_025).
+        provider, _model_name = _split_model(job.model or settings.gemini_model)
+        if provider == "local":
+            if not settings.local_model_base_url:
+                raise RuntimeError(
+                    "No LOCAL_MODEL_BASE_URL configured — set it in .env to generate "
+                    "with the local model."
+                )
+        elif not settings.gemini_api_key:
             raise RuntimeError("No GEMINI_API_KEY configured — set it in .env to generate.")
 
         prompt = prompt_catalog.get_prompt(job.prompt_slug)

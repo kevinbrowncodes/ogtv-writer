@@ -67,7 +67,7 @@ def shoots_page(request: Request, db: DbSession, channel: str = "", date: str = 
             **context,
             "has_shoots": bool(context["channel_options"]),
             "prompts": prompt_catalog.list_prompts(),
-            "models": generation_service.available_models(),
+            "model_options": generation_service.model_options(),
             "default_model": get_settings().gemini_model,
             "gemini": generation_service.gemini_status(),
             "source_root": get_settings().source_root,
@@ -108,7 +108,7 @@ def _queue_shoot(
             parsed_count = int(count)
         else:
             return "Enter how many scripts to generate (1 or more)."
-    models = generation_service.available_models()
+    models = generation_service.selectable_models()
     chosen_model = model if model in models else get_settings().gemini_model
     job_service.create_job(
         db,

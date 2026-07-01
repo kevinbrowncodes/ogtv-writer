@@ -20,6 +20,11 @@ os.environ.setdefault("DEBUG", "false")
 # Force-blank the Gemini key so tests NEVER make a live call, even though a real
 # key may live in .env. Tests that exercise generation set their own + mock the client.
 os.environ["GEMINI_API_KEY"] = ""
+# Likewise disable the local (DGX Spark) provider so tests are deterministic and never
+# reach a real endpoint from .env. Local-provider tests set these + mock local_client.
+os.environ["LOCAL_MODEL_BASE_URL"] = ""
+os.environ["LOCAL_MODEL_API_KEY"] = ""
+os.environ["LOCAL_MODEL_NAMES"] = ""
 # Point shoot discovery at a non-existent dir so /jobs/new is deterministic (no real
 # data/logline shoots leak in); folder tests monkeypatch SOURCE_ROOT to a tmp dir.
 os.environ["SOURCE_ROOT"] = "data/_test_shoots_none"

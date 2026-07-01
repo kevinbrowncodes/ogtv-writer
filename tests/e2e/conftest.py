@@ -23,6 +23,11 @@ os.environ.setdefault("SECRET_KEY", "e2e-secret-key")
 # Blank the Gemini key so the live e2e server never calls the API (worker is off
 # under tests anyway); the model picker falls back to the default.
 os.environ["GEMINI_API_KEY"] = ""
+# Likewise disable the local (DGX Spark) provider so the e2e server never depends on a
+# real endpoint from the operator's .env (STORY_025).
+os.environ["LOCAL_MODEL_BASE_URL"] = ""
+os.environ["LOCAL_MODEL_API_KEY"] = ""
+os.environ["LOCAL_MODEL_NAMES"] = ""
 # A dedicated shoot root for e2e; the live_server fixture seeds one shoot into it.
 os.environ.setdefault("SOURCE_ROOT", "data/e2e_shoots")
 

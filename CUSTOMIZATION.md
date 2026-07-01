@@ -63,6 +63,16 @@ entirely, swap the body of `gemini_client.generate()` for your SDK call (and add
 its key in [app/config.py](app/config.py) + `.env`). Routes, the worker, parsing,
 the library, and export are all unaffected.
 
+**Running two providers side by side** (STORY_025) is the worked example:
+[app/services/local_client.py](app/services/local_client.py) is a second boundary
+(an OpenAI-compatible endpoint on the DGX Spark) that raises the *same*
+`RetryableError` / `GenerationError` as `gemini_client` — both are defined in
+[app/services/llm_errors.py](app/services/llm_errors.py). `generation_service`
+namespaces the picker values (`local:<name>`) and routes each job to the right client
+in `_generate_with_retries()`, so adding a third provider is: a new `*_client.py`, a
+branch in the router, and an entry in `model_options()`. Provider labels live in
+[app/domain.py](app/domain.py) (`PROVIDER_LABELS`).
+
 ---
 
 ## Add a new entity (the five-file recipe)

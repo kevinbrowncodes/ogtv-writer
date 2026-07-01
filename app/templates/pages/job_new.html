@@ -36,16 +36,22 @@
 
     <!-- Model -->
     {% include "partials/_gemini_warning.html" %}
+    {% set selected_model = v.get('model') or default_model %}
     <div>
       <label class="label" for="model">Model</label>
       <select id="model" name="model" class="input">
-        {% for m in models %}
-          <option value="{{ m }}" {% if m == (v.get('model') or default_model) %}selected{% endif %}>{{ m }} — {{ price_label(m) }}</option>
+        {% for group in model_options %}
+        <optgroup label="{{ group.label }}">
+          {% for o in group.options %}
+            <option value="{{ o.value }}" {% if o.value == selected_model %}selected{% endif %}>{{ o.label }} — {{ o.price }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
       <p class="mt-1 text-xs text-muted">
-        Defaults to <code class="rounded bg-surface-2 px-1">{{ default_model }}</code>. Prices are approximate —
+        Defaults to <code class="rounded bg-surface-2 px-1">{{ default_model }}</code>. Gemini prices are approximate —
         <a href="https://ai.google.dev/gemini-api/docs/pricing" class="text-brand hover:underline" target="_blank" rel="noopener">verify</a>.
+        Local models run on the DGX Spark.
       </p>
     </div>
 

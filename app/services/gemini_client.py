@@ -7,23 +7,20 @@ importing the app at rest does not require the package to be installed.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
+# Shared with local_client + the worker's retry loop. Re-exported here so existing
+# imports (``from app.services.gemini_client import GenerationError``) keep working.
+from app.services.llm_errors import GenerationError, ModelProbe, RetryableError
 
-class GenerationError(RuntimeError):
-    """Raised when Gemini returns no usable content (e.g. a safety block).
-
-    Terminal: the same prompt + frame blocks deterministically, so the worker does
-    NOT retry it (STORY_012).
-    """
-
-
-class RetryableError(RuntimeError):
-    """A transient Gemini failure (rate-limit / network / 5xx / timeout).
-
-    The worker retries these up to ``MAX_ATTEMPTS`` (STORY_012).
-    """
+__all__ = [
+    "GenerationError",
+    "RetryableError",
+    "ModelProbe",
+    "generate",
+    "probe_models",
+    "list_models",
+]
 
 
 # HTTP statuses worth retrying: rate-limit, request timeout, conflict, and 5xx.
@@ -70,20 +67,6 @@ _NON_TEXT_MARKERS = (
     "customtools",
     "antigravity",
 )
-
-
-@dataclass(frozen=True)
-class ModelProbe:
-    """Result of asking Gemini for the models a key can use.
-
-    ``ok`` is False when the list couldn't be fetched, in which case ``models`` is
-    empty and ``reason`` carries a short, operator-readable explanation (e.g. a
-    rejected key) for the UI to surface (STORY_023).
-    """
-
-    models: list[str]
-    ok: bool
-    reason: str
 
 
 def _probe_reason(exc: Exception) -> str:

@@ -29,8 +29,12 @@
       <div>
         <label class="label" for="model">Model</label>
         <select id="model" name="model" class="input">
-          {% for m in models %}
-            <option value="{{ m }}" {% if m == default_model %}selected{% endif %}>{{ m }} — {{ price_label(m) }}</option>
+          {% for group in model_options %}
+          <optgroup label="{{ group.label }}">
+            {% for o in group.options %}
+              <option value="{{ o.value }}" {% if o.value == default_model %}selected{% endif %}>{{ o.label }} — {{ o.price }}</option>
+            {% endfor %}
+          </optgroup>
           {% endfor %}
         </select>
       </div>

@@ -28,6 +28,7 @@ dependencies = [
     "itsdangerous>=2.2",       # signs the session cookie (flash messages)
     # >>> ADD APP-SPECIFIC RUNTIME DEPENDENCIES BELOW THIS LINE <<<
     "google-genai>=0.8",  # Gemini multimodal client (script generator)
+    "openai>=1.0",  # OpenAI-compatible client for the local (DGX Spark) model provider
     "tzdata>=2024.1",  # IANA tz database for zoneinfo (US Eastern build stamp) in slim Docker
 ]
 

@@ -56,6 +56,10 @@ seed: ## Create sample data (tags + scripts)
 gemini-check: ## Check the configured Gemini API key is valid (free; no generation)
 	$(PYTHON) -m scripts.gemini_check
 
+.PHONY: local-check
+local-check: ## Check the configured local model endpoint is reachable (free; no generation)
+	$(PYTHON) -m scripts.local_check
+
 .PHONY: migrate
 migrate: ## Apply migrations to head (adopts an existing pre-migration DB safely)
 	$(PYTHON) -m app.migrations_runner

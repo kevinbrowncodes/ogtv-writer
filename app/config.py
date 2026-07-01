@@ -90,6 +90,17 @@ class Settings(BaseSettings):
     # (rate-limit / network / 5xx) are retried; a content block fails immediately.
     max_attempts: int = 3
 
+    # --- Local model (DGX Spark / OpenAI-compatible) --------------------------
+    # A self-hosted, OpenAI-compatible endpoint (e.g. vLLM) offered in the model picker
+    # alongside Gemini. A BLANK base URL disables the local provider entirely — nothing
+    # local shows up. No API key is needed for a LAN box (leave it blank).
+    local_model_base_url: str = ""
+    local_model_api_key: str = ""
+    # Curated allowlist of model names to offer (comma-separated). When set, ONLY these
+    # appear in the picker (keeps the dropdown to a couple of sane choices); when blank,
+    # the live /v1/models list is used instead.
+    local_model_names: str = ""
+
     # --- Derived helpers ------------------------------------------------------
     @property
     def is_production(self) -> bool:

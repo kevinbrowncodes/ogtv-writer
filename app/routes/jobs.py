@@ -56,7 +56,7 @@ def job_new_page(request: Request, prompt: str = "") -> HTMLResponse:
         {
             "prompts": prompt_catalog.list_prompts(),
             "selected": selected,
-            "models": generation_service.available_models(),
+            "model_options": generation_service.model_options(),
             "default_model": get_settings().gemini_model,
             "gemini": generation_service.gemini_status(),
             "shoots": shoot_list,
@@ -157,7 +157,7 @@ def jobs_create(
     image: Annotated[UploadFile | None, File()] = None,
 ) -> Response:
     selected = prompt_catalog.get_prompt(prompt_slug) if prompt_slug else None
-    models = generation_service.available_models()
+    models = generation_service.selectable_models()
     default_model = get_settings().gemini_model
     chosen_model = model if model in models else default_model
     values = {
@@ -213,7 +213,7 @@ def jobs_create(
             {
                 "prompts": prompt_catalog.list_prompts(),
                 "selected": selected,
-                "models": models,
+                "model_options": generation_service.model_options(),
                 "default_model": default_model,
                 "gemini": generation_service.gemini_status(),
                 "shoots": shoots.list_shoots(),

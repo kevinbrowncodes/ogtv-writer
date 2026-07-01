@@ -39,6 +39,17 @@ TAG_KIND_LABELS: dict[str, str] = {
     "style": "Style",
 }
 
+# --- Generation providers ----------------------------------------------------
+# Where a job's scripts are generated. "gemini" is Google's hosted API; "local" is a
+# self-hosted, OpenAI-compatible endpoint (the DGX Spark) offered alongside it. Local
+# model *values* are namespaced ``local:<name>`` so routing never depends on the
+# endpoint being reachable at submit time (see generation_service.LOCAL_PREFIX).
+PROVIDERS = ("gemini", "local")
+PROVIDER_LABELS: dict[str, str] = {
+    "gemini": "Gemini",
+    "local": "Local (DGX Spark)",
+}
+
 
 # --- Gemini model pricing (REFERENCE ONLY) -----------------------------------
 # USD per 1M tokens. The Gemini API does not expose pricing, so this is a

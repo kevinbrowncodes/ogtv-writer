@@ -58,6 +58,29 @@ mock it, so the suite never makes a live, paid call.
 > model-list call (never a paid generation). After editing the key in `.env`, recreate
 > the container so it reloads: `docker compose up -d --force-recreate`.
 
+### Local model (DGX Spark)
+
+The Model picker can also run a **self-hosted, OpenAI-compatible** endpoint (e.g. a
+vision model served with vLLM on the DGX Spark) alongside Gemini — no per-token cost.
+Set `LOCAL_MODEL_BASE_URL` in `.env` (blank disables it entirely); the picker then shows
+a **"Local (DGX Spark)"** group next to the Gemini one. Selecting a local model routes
+that job to [`app/services/local_client.py`](app/services/local_client.py) instead of
+Gemini — the two providers share the worker, retry loop, parsing, and output writing.
+
+```dotenv
+LOCAL_MODEL_BASE_URL="http://spark-1.local:8003/v1"
+LOCAL_MODEL_API_KEY=""                                  # blank for a LAN box
+LOCAL_MODEL_NAMES="aeon-ultimate,aeon-fast"             # curated allowlist (see below)
+```
+
+- `LOCAL_MODEL_NAMES` is a **curated allowlist**: when set, only those models appear;
+  when blank, the live `/v1/models` list is used. Since a server can expose several
+  near-identical aliases, curating a couple keeps the dropdown sane.
+- The local model must be **vision-capable** — a shoot always sends its first frame as a
+  base64 `image_url` part.
+- Run **`make local-check`** to confirm the endpoint is reachable (`✅ reachable (N
+  models)` / `❌ <reason>`) — free, no generation.
+
 ---
 
 ## Stack
@@ -69,7 +92,7 @@ mock it, so the suite never makes a live, paid call.
 | Interactivity| **HTMX** (AJAX/partials via HTML attributes) |
 | Styling      | **Tailwind CSS** |
 | Data         | **SQLAlchemy 2.0 + SQLite** |
-| AI           | **Google Gemini** (`google-genai`, multimodal) |
+| AI           | **Google Gemini** (`google-genai`, multimodal) + optional self-hosted OpenAI-compatible model (`openai`) |
 | Tests        | **pytest + Playwright** |
 | PWA          | manifest + service worker (installable, offline app-shell) |
 
@@ -244,6 +267,7 @@ by [app/config.py](app/config.py).
 | `DATABASE_URL` | `sqlite:///./data/app.db` or a Postgres URL |
 | `AUTO_MIGRATE` | Apply migrations on startup (dev); set `false` in prod and run `make migrate` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini auth + model for the generator (blank = generation disabled) |
+| `LOCAL_MODEL_BASE_URL`, `LOCAL_MODEL_API_KEY`, `LOCAL_MODEL_NAMES` | Self-hosted OpenAI-compatible provider (DGX Spark) offered alongside Gemini; blank base URL disables it. `NAMES` is a curated allowlist |
 | `BUILD_VERSION` | Build stamp shown in the footer + `/healthz`. Set by `make deploy` (`YYMMDD-HHMM`, US Eastern); blank locally = process-start time |
 | `FEATURE_DARK_MODE`, `FEATURE_DASHBOARD` | Feature flags |
 
