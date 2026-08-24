@@ -1,15 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="OGTV Writer icon">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#7c3aed"/>
-      <stop offset="1" stop-color="#db2777"/>
-    </linearGradient>
-  </defs>
-  <!-- Full-bleed background keeps it valid as a maskable icon. -->
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <!-- Play glyph (video) with a script "underline" — the Writer for OnlyGainsTV. -->
-  <path d="M214 168 L214 320 L338 244 Z" fill="#ffffff"/>
-  <g stroke="#ffffff" stroke-width="22" stroke-linecap="round" opacity="0.95">
-    <path d="M168 372 H344"/>
+  <!-- Full-bleed black background keeps it valid as a maskable icon (STORY_034). -->
+  <rect width="512" height="512" rx="112" fill="#000000"/>
+  <!-- White pencil, mid-stroke, with the line it just drew — the Writer. -->
+  <g transform="rotate(45 256 256)" fill="#ffffff">
+    <rect x="221" y="96" width="70" height="230" rx="14"/>
+    <path d="M221 342 L291 342 L256 404 Z"/>
   </g>
+  <path d="M150 400 H362" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
 </svg>

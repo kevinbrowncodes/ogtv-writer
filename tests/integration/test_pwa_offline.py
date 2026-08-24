@@ -29,3 +29,29 @@ def test_service_worker_encodes_network_only_contract(client):
     assert "fetch(req).catch(async ()" in body
     # The old silent "serve the stale cached page" fallback is gone.
     assert ".catch(() => caches.match(req))" not in body
+
+
+# --- STORY_034: true-black theme + pencil icon --------------------------------
+
+
+def test_manifest_uses_black_theme(client):
+    resp = client.get("/manifest.webmanifest")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["background_color"] == "#000000"
+    assert data["theme_color"] == "#000000"
+
+
+def test_icon_is_white_pencil_on_black(client):
+    resp = client.get("/static/icons/icon.svg")
+    assert resp.status_code == 200
+    body = resp.text
+    assert 'fill="#000000"' in body  # black full-bleed background
+    assert 'fill="#ffffff"' in body  # white pencil
+    assert "linearGradient" not in body  # the old purple/pink gradient is gone
+
+
+def test_page_meta_theme_color_is_black(client):
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    assert '<meta name="theme-color" content="#000000" />' in resp.text

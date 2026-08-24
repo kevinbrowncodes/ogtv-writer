@@ -19,6 +19,14 @@ def test_root_opens_shoots(page: Page, live_server: str):
     expect(page.get_by_role("heading", name="Shoots")).to_be_visible()
 
 
+def test_dark_theme_is_true_black(page: Page, live_server: str):
+    # STORY_034: with a dark color scheme (no stored choice), the body renders on
+    # pure black — the token change flowed through the built CSS.
+    page.emulate_media(color_scheme="dark")
+    page.goto(f"{live_server}/shoots")
+    assert page.evaluate("getComputedStyle(document.body).backgroundColor") == "rgb(0, 0, 0)"
+
+
 def test_sidebar_drawer_opens_and_auto_closes(page: Page, live_server: str):
     # STORY_032: the sidebar is a drawer at every size (the default viewport is
     # desktop-width): closed on load, opened by the hamburger, auto-closing on

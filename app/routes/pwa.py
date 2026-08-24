@@ -30,8 +30,8 @@ def manifest() -> JSONResponse:
         "start_url": "/",
         "scope": "/",
         "display": "standalone",
-        "background_color": "#0b0f17",
-        "theme_color": "#0b0f17",
+        "background_color": "#000000",
+        "theme_color": "#000000",
         "icons": [
             {
                 "src": "/static/icons/icon.svg",

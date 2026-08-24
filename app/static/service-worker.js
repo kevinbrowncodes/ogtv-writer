@@ -37,11 +37,11 @@ function offlineFallback() {
   return new Response(
     "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>" +
       "<title>Server not running</title>" +
-      "<body style=\"font-family:system-ui,sans-serif;background:#0b0f17;color:#e2e8f0;display:grid;place-items:center;height:100vh;margin:0\">" +
+      "<body style=\"font-family:system-ui,sans-serif;background:#000000;color:#e2e8f0;display:grid;place-items:center;height:100vh;margin:0\">" +
       "<div style='text-align:center;max-width:24rem;padding:1rem'>" +
       "<h1 style='font-size:1.25rem'>Server not running</h1>" +
       "<p style='color:#94a3b8'>OGTV Writer can't reach its backend. Start the container, then reload.</p>" +
-      "<button onclick='location.reload()' style='padding:.5rem 1rem;border-radius:.5rem;border:0;background:#a78bfa;color:#0b0f17;font-weight:600;cursor:pointer'>Reload</button>" +
+      "<button onclick='location.reload()' style='padding:.5rem 1rem;border-radius:.5rem;border:0;background:#a78bfa;color:#000000;font-weight:600;cursor:pointer'>Reload</button>" +
       "</div>",
     { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
