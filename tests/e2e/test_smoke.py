@@ -60,9 +60,23 @@ def test_submit_generation_job(page: Page, live_server: str):
     expect(page.locator("#job-status")).to_contain_text("Queued")
 
 
+def test_shoots_date_defaults_to_today(page: Page, live_server: str):
+    # STORY_029: the Date filter starts on today's date (the seed creates a youtube
+    # shoot dated today), so the list opens showing today's shoots only.
+    from datetime import date
+
+    today = date.today().strftime("%y-%m-%d")
+    page.goto(f"{live_server}/shoots")
+    expect(page.locator("#shoot-date-filter")).to_have_value(today)
+    expect(page.locator("#shoots-list")).to_contain_text(f"{today}-0000")
+    expect(page.locator("#shoots-list")).not_to_contain_text("yt-test-shoot")  # undated → hidden
+
+
 def test_shoots_dashboard_lists_pending(page: Page, live_server: str):
     page.goto(f"{live_server}/shoots")
     expect(page.get_by_role("heading", name="Shoots")).to_be_visible()
+    # The page opens on today's date (STORY_029); widen to all dates for the full list.
+    page.locator("#shoot-date-filter").select_option("")
     # The seeded shoot (only 01.jpg, no script) shows as Pending.
     expect(page.locator("body")).to_contain_text("test-shoot")
     expect(page.locator("body")).to_contain_text("Pending")
@@ -99,6 +113,7 @@ def test_shoots_warns_when_gemini_unavailable(page: Page, live_server: str):
 
 def test_shoots_filter_by_channel(page: Page, live_server: str):
     page.goto(f"{live_server}/shoots")
+    page.locator("#shoot-date-filter").select_option("")  # widen from today (STORY_029)
     # Both seeded channels are visible with no filter.
     expect(page.locator("#shoots-list")).to_contain_text("test-shoot")
     expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
@@ -114,6 +129,7 @@ def test_run_all_pending_keeps_prompt_selection(page: Page, live_server: str):
     # pending, and the prompt <select> should still hold that choice — the run now swaps
     # only #shoots-list (HTMX) instead of reloading the whole page.
     page.goto(f"{live_server}/shoots")
+    page.locator("#shoot-date-filter").select_option("")  # widen from today (STORY_029)
     page.select_option("#prompt_slug", "video-review-prompt")
     page.get_by_role("button", name="Run all pending").click()
     # The list swaps to the queued/running state in place (a job was queued)...
@@ -157,6 +173,7 @@ def test_shoots_refresh_button_picks_up_new_folder(page: Page, live_server: str)
     new_shoot = Path(get_settings().source_root) / "only-gains-tv" / "fresh-drop-shoot"
     try:
         page.goto(f"{live_server}/shoots")
+        page.locator("#shoot-date-filter").select_option("")  # widen from today (STORY_029)
         expect(page.locator("#shoots-list")).not_to_contain_text("fresh-drop-shoot")
         new_shoot.mkdir(parents=True)
         (new_shoot / "01.jpg").write_bytes(b"img")
@@ -182,6 +199,7 @@ def test_settings_default_channel_applies_to_shoots(page: Page, live_server: str
 
         page.goto(f"{live_server}/shoots")
         expect(page.locator("#shoot-channel-filter")).to_have_value("youtube")
+        page.locator("#shoot-date-filter").select_option("")  # widen from today (STORY_029)
         expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
         expect(page.locator("#shoots-list")).not_to_contain_text("only-gains-tv")
     finally:

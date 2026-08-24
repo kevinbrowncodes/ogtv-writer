@@ -59,15 +59,19 @@ def _list_context(db: DbSession, channel: str, date: str) -> dict:
 
 @router.get("/shoots", response_class=HTMLResponse)
 def shoots_page(
-    request: Request, db: DbSession, channel: str | None = None, date: str = ""
+    request: Request, db: DbSession, channel: str | None = None, date: str | None = None
 ) -> HTMLResponse:
-    # No channel in the query at all → start on the saved default channel (STORY_028).
-    # An explicit ?channel= (empty) still means "All channels". A stale default whose
-    # folder is gone falls back to all rather than an empty filtered view.
+    # Absent query params mean "use the operator's defaults": the saved default channel
+    # (STORY_028) and today's date (STORY_029). An explicit ?channel= / ?date= — even
+    # empty — always wins. Stale defaults fall back to "all" rather than an empty view:
+    # the channel is checked here; the date via _list_context(), which clears any date
+    # the current channel has no shoots for.
     if channel is None:
         channel = preference_service.get_preference(db, preference_service.DEFAULT_CHANNEL_KEY)
         if channel and channel not in shoots.list_by_channel():
             channel = ""
+    if date is None:
+        date = shoots.today_label()
     context = _list_context(db, channel, date)
     return templates.TemplateResponse(
         request,

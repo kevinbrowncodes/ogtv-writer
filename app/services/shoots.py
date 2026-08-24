@@ -184,6 +184,15 @@ def recent_dates(
     return sorted(found, reverse=True)
 
 
+def today_label(today: date | None = None) -> str:
+    """Today's date in shoot-folder form (``YY-MM-DD``, matching ``recent_dates()``).
+
+    ``today`` is injectable for deterministic tests. Used by the Shoots page to
+    default the Date filter to the current date (STORY_029).
+    """
+    return (today or date.today()).strftime("%y-%m-%d")
+
+
 def filter_shoots(
     by_channel: dict[str, list[Shoot]], channel: str | None = None, date: str | None = None
 ) -> dict[str, list[Shoot]]:

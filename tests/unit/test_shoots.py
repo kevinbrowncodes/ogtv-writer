@@ -305,3 +305,15 @@ def test_write_outputs_single_then_multi(source_root):
     assert (d / "script2.txt").read_text() == "b"
     assert (d / "titles.txt").read_text() == "T1\nT2"
     assert (d / "summary.md").read_text() == "Scene summary."
+
+
+# --- STORY_029: today's date label -------------------------------------------
+
+
+def test_today_label_matches_shoot_folder_format():
+    assert shoots.today_label(date(2026, 8, 24)) == "26-08-24"
+    assert shoots.today_label(date(2027, 1, 3)) == "27-01-03"
+
+
+def test_today_label_defaults_to_real_today():
+    assert shoots.today_label() == date.today().strftime("%y-%m-%d")

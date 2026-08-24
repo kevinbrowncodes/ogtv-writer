@@ -335,6 +335,52 @@ def test_run_redirect_preserves_filter(client):
     assert "channel=only-gains-tv" in resp.headers["location"]
 
 
+# --- STORY_029: date filter defaults to today ---------------------------------
+
+
+def test_shoots_page_defaults_to_today_when_today_has_shoots(client):
+    root = Path(get_settings().source_root)
+    today = date.today().strftime("%y-%m-%d")
+    _seed(root, f"only-gains-tv/{today}/{today}-0800")
+
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    assert f'value="{today}" selected' in resp.text  # the Date dropdown starts on today
+    assert f"{today}-0800" in resp.text  # today's shoot is listed
+    assert "26-orange" not in resp.text  # the undated shoot is filtered out
+
+
+def test_shoots_page_falls_back_to_all_dates_without_today(client):
+    resp = client.get("/shoots")  # the base fixture has no today-dated folder
+    today = date.today().strftime("%y-%m-%d")
+    assert resp.status_code == 200
+    assert f'value="{today}" selected' not in resp.text  # nothing pre-selected
+    assert "26-orange" in resp.text  # everything shows
+
+
+def test_shoots_explicit_all_dates_overrides_today_default(client):
+    root = Path(get_settings().source_root)
+    today = date.today().strftime("%y-%m-%d")
+    _seed(root, f"only-gains-tv/{today}/{today}-0800")
+
+    resp = client.get("/shoots", params={"date": ""})
+    assert resp.status_code == 200
+    assert f'value="{today}" selected' not in resp.text
+    assert "26-orange" in resp.text and f"{today}-0800" in resp.text  # all dates shown
+
+
+def test_today_in_another_channel_falls_back_for_filtered_one(client):
+    root = Path(get_settings().source_root)
+    today = date.today().strftime("%y-%m-%d")
+    _seed(root, f"youtube/{today}/{today}-0000", frame="01.jpeg")
+
+    resp = client.get("/shoots", params={"channel": "only-gains-tv"})
+    assert resp.status_code == 200
+    # only-gains-tv has nothing dated today → All dates, its shoots stay visible.
+    assert f'value="{today}" selected' not in resp.text
+    assert "26-orange" in resp.text
+
+
 # --- STORY_027: refresh button picks up new folders ---------------------------
 
 
