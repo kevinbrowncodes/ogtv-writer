@@ -10,11 +10,35 @@ def test_index_redirects_to_shoots(client):
     assert resp.headers["location"] == "/shoots"
 
 
-def test_sidebar_lists_shoots_first(client):
-    # STORY_031: Shoots sits above Dashboard in the nav.
+def _sidebar_html(page_text: str) -> str:
+    """Just the sidebar markup (between the aside's id and its closing tag)."""
+    return page_text.split('id="sidebar"')[1].split("</aside>")[0]
+
+
+def test_sidebar_lists_only_core_nav_shoots_first(client):
+    # STORY_031/032: the nav is Shoots (first), Prompts, Queue — nothing else.
     resp = client.get("/dashboard")
     assert resp.status_code == 200
-    assert resp.text.index('href="/shoots"') < resp.text.index('href="/dashboard"')
+    sidebar = _sidebar_html(resp.text)
+    assert sidebar.index('href="/shoots"') < sidebar.index('href="/prompts"') < sidebar.index(
+        'href="/jobs"'
+    )
+    for gone in ("/dashboard", "/scripts", "/tags", "/settings"):
+        assert f'href="{gone}"' not in sidebar
+    # Settings stays one click away via the topbar gear.
+    assert 'href="/settings"' in resp.text
+
+
+def test_sidebar_is_an_unpinned_drawer_everywhere(client):
+    # STORY_032: no lg: pin on the aside/backdrop, and the hamburger shows at all sizes.
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    aside_tag = resp.text.split('id="sidebar"')[1].split(">")[0]
+    assert "lg:static" not in aside_tag and "lg:translate-x-0" not in aside_tag
+    backdrop_tag = resp.text.split('id="sidebar-backdrop"')[1].split(">")[0]
+    assert "lg:hidden" not in backdrop_tag
+    hamburger_tag = resp.text.split("data-sidebar-open")[0].rsplit("<button", 1)[1]
+    assert "lg:hidden" not in hamburger_tag
 
 
 def test_dashboard_renders_shell_and_stats(client):

@@ -19,6 +19,38 @@ def test_root_opens_shoots(page: Page, live_server: str):
     expect(page.get_by_role("heading", name="Shoots")).to_be_visible()
 
 
+def test_sidebar_drawer_opens_and_auto_closes(page: Page, live_server: str):
+    # STORY_032: the sidebar is a drawer at every size (the default viewport is
+    # desktop-width): closed on load, opened by the hamburger, auto-closing on
+    # backdrop click and on choosing a nav item.
+    import re
+
+    page.goto(f"{live_server}/shoots")
+    sidebar = page.locator("#sidebar")
+    backdrop = page.locator("#sidebar-backdrop")
+    expect(sidebar).to_have_class(re.compile(r"-translate-x-full"))  # closed on load
+    expect(backdrop).to_be_hidden()
+
+    page.locator("[data-sidebar-open]").click()
+    expect(sidebar).not_to_have_class(re.compile(r"-translate-x-full"))  # open
+    expect(backdrop).to_be_visible()
+    # Only the core nav remains.
+    expect(sidebar).to_contain_text("Shoots")
+    expect(sidebar).to_contain_text("Prompts")
+    expect(sidebar).to_contain_text("Queue")
+    expect(sidebar).not_to_contain_text("Dashboard")
+    expect(sidebar).not_to_contain_text("Tags")
+
+    backdrop.click()  # clicking outside auto-closes
+    expect(sidebar).to_have_class(re.compile(r"-translate-x-full"))
+    expect(backdrop).to_be_hidden()
+
+    page.locator("[data-sidebar-open]").click()
+    sidebar.get_by_role("link", name="Prompts").click()  # navigating auto-closes
+    expect(page.get_by_role("heading", name="Prompt library")).to_be_visible()
+    expect(page.locator("#sidebar")).to_have_class(re.compile(r"-translate-x-full"))
+
+
 def test_dashboard_renders(page: Page, live_server: str):
     page.goto(f"{live_server}/dashboard")
     expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
