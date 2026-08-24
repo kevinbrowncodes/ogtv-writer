@@ -1,0 +1,14 @@
+{#
+  The Channel filter <select>. Used two ways (mirroring _date_filter.html):
+   - inline in the picker (pages/shoots.html), with no `oob`;
+   - in the /shoots/list response with `oob=true`, so any list swap (Refresh button,
+     filter change, run, poll) rebuilds its options — a folder that creates a brand-new
+     channel appears in the dropdown, not just in the tables (STORY_027).
+  Expects: channel_options, selected_channel (+ optional oob).
+#}
+<select id="shoot-channel-filter" name="channel" class="input"{% if oob %} hx-swap-oob="true"{% endif %}
+  hx-get="/shoots/list" hx-target="#shoots-list" hx-swap="outerHTML" hx-trigger="change"
+  hx-include="#shoot-channel-filter, #shoot-date-filter">
+  <option value="">All channels</option>
+  {% for c in channel_options %}<option value="{{ c }}" {% if c == selected_channel %}selected{% endif %}>{{ c }}</option>{% endfor %}
+</select>

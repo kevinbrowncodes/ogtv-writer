@@ -146,6 +146,28 @@ def test_shoots_date_options_follow_channel(page: Page, live_server: str):
     expect(date_filter).not_to_contain_text(ogtv_date)
 
 
+def test_shoots_refresh_button_picks_up_new_folder(page: Page, live_server: str):
+    # STORY_027: drop a new shoot folder on disk, click Refresh, and it appears in the
+    # list in place — no full page reload.
+    import shutil
+    from pathlib import Path
+
+    from app.config import get_settings
+
+    new_shoot = Path(get_settings().source_root) / "only-gains-tv" / "fresh-drop-shoot"
+    try:
+        page.goto(f"{live_server}/shoots")
+        expect(page.locator("#shoots-list")).not_to_contain_text("fresh-drop-shoot")
+        new_shoot.mkdir(parents=True)
+        (new_shoot / "01.jpg").write_bytes(b"img")
+        page.get_by_role("link", name="Refresh").click()
+        expect(page.locator("#shoots-list")).to_contain_text("fresh-drop-shoot")
+    finally:
+        # The e2e source root is session-scoped on-disk state — don't leak the folder
+        # into later tests or future runs.
+        shutil.rmtree(new_shoot, ignore_errors=True)
+
+
 def test_completed_job_shows_split_scripts(page: Page, live_server: str):
     page.goto(f"{live_server}/jobs")
     # Open the seeded completed job (the only row marked Done).

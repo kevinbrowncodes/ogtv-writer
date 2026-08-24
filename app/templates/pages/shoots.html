@@ -3,12 +3,21 @@
 
 {% block content %}
 <div class="space-y-6">
-  <div>
-    <h1 class="text-2xl font-semibold tracking-tight">Shoots</h1>
-    <p class="text-sm text-muted">
-      Shoot folders under <code class="rounded bg-surface-2 px-1">{{ source_root }}</code>.
-      Pick a prompt + model, then Run the pending ones.
-    </p>
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Shoots</h1>
+      <p class="text-sm text-muted">
+        Shoot folders under <code class="rounded bg-surface-2 px-1">{{ source_root }}</code>.
+        Pick a prompt + model, then Run the pending ones.
+      </p>
+    </div>
+    {# Refresh re-scans the shoot folders. With shoots on screen it swaps only #shoots-list
+       (so the picker keeps its values, BUG_004) and carries the active filter; the plain
+       href is the no-JS fallback and the whole story in the empty state, where a full
+       reload is what reveals the picker once folders exist (STORY_027). #}
+    <a id="shoots-refresh" href="/shoots" class="btn-secondary shrink-0"
+      {% if has_shoots %}hx-get="/shoots/list" hx-target="#shoots-list" hx-swap="outerHTML"
+      hx-include="#shoot-channel-filter, #shoot-date-filter"{% endif %}>↻ Refresh</a>
   </div>
 
   {% include "partials/_gemini_warning.html" %}
@@ -40,12 +49,7 @@
       </div>
       <div>
         <label class="label" for="shoot-channel-filter">Channel</label>
-        <select id="shoot-channel-filter" name="channel" class="input"
-          hx-get="/shoots/list" hx-target="#shoots-list" hx-swap="outerHTML" hx-trigger="change"
-          hx-include="#shoot-channel-filter, #shoot-date-filter">
-          <option value="">All channels</option>
-          {% for c in channel_options %}<option value="{{ c }}" {% if c == selected_channel %}selected{% endif %}>{{ c }}</option>{% endfor %}
-        </select>
+        {% include "partials/shoots/_channel_filter.html" %}
       </div>
       <div>
         <label class="label" for="shoot-date-filter">Date</label>

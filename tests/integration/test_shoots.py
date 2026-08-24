@@ -335,6 +335,36 @@ def test_run_redirect_preserves_filter(client):
     assert "channel=only-gains-tv" in resp.headers["location"]
 
 
+# --- STORY_027: refresh button picks up new folders ---------------------------
+
+
+def test_dashboard_renders_refresh_button(client):
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    assert 'id="shoots-refresh"' in resp.text and "Refresh" in resp.text
+    # Progressive enhancement: a plain /shoots link, HTMX-swapping just the list
+    # (carrying the active filter) so the picker keeps its values.
+    assert 'href="/shoots"' in resp.text
+    assert 'hx-target="#shoots-list"' in resp.text
+
+
+def test_refresh_picks_up_folder_added_after_first_render(client):
+    before = client.get("/shoots/list")
+    assert "26-late-arrival" not in before.text
+    _seed(Path(get_settings().source_root), "only-gains-tv/26-late-arrival")
+    after = client.get("/shoots/list")  # what the Refresh button requests
+    assert "26-late-arrival" in after.text
+
+
+def test_refresh_swaps_channel_select_out_of_band_with_new_channel(client):
+    _seed(Path(get_settings().source_root), "tiktok/26-new-channel-shoot")
+    resp = client.get("/shoots/list")
+    assert resp.status_code == 200
+    # The Channel select comes back out-of-band, now offering the new channel.
+    assert 'id="shoot-channel-filter" name="channel" class="input" hx-swap-oob="true"' in resp.text
+    assert 'value="tiktok"' in resp.text
+
+
 def test_dashboard_lists_nested_shoot_and_runs_it(client, db):
     # A date-grouped channel: youtube/26-06-07/26-06-07-0000/01.jpeg (BUG_001 / STORY_013).
     root = Path(get_settings().source_root)
