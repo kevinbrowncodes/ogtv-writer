@@ -12,8 +12,9 @@ from typing import Annotated
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from app.config import get_settings
 from app.dependencies import DbSession
-from app.services import preference_service, shoots
+from app.services import generation_service, preference_service, shoots
 from app.templating import flash, templates
 
 router = APIRouter(tags=["settings"])
@@ -28,6 +29,11 @@ def settings_page(request: Request, db: DbSession) -> HTMLResponse:
             "channel_options": list(shoots.list_by_channel()),
             "default_channel": preference_service.get_preference(
                 db, preference_service.DEFAULT_CHANNEL_KEY
+            ),
+            "model_options": generation_service.model_options(),
+            "env_default_model": get_settings().gemini_model,
+            "default_model_pref": preference_service.get_preference(
+                db, preference_service.DEFAULT_MODEL_KEY
             ),
         },
     )
@@ -45,6 +51,25 @@ def save_default_channel(
         flash(
             request,
             f"Shoots will start on '{channel}'." if channel else "Shoots will start on all channels.",
+            "success",
+        )
+    return RedirectResponse("/settings", status_code=303)
+
+
+@router.post("/settings/default-model")
+def save_default_model(
+    request: Request, db: DbSession, model: Annotated[str, Form()] = ""
+) -> RedirectResponse:
+    """Persist the model the pickers start on ("" = the .env default) — STORY_030."""
+    if model and model not in generation_service.selectable_models():
+        flash(request, f"'{model}' is not an available model.", "danger")
+    else:
+        preference_service.set_preference(db, preference_service.DEFAULT_MODEL_KEY, model)
+        flash(
+            request,
+            f"Model pickers will start on '{model}'."
+            if model
+            else "Model pickers will use the app default.",
             "success",
         )
     return RedirectResponse("/settings", status_code=303)

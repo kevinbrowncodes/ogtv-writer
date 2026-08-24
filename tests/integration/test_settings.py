@@ -78,3 +78,74 @@ def test_shoots_stale_default_falls_back_to_all(client, db):
     assert resp.status_code == 200
     assert "No shoots match this filter" not in resp.text
     assert "26-yt-clip" in resp.text and "26-orange" in resp.text  # all channels shown
+
+
+# --- STORY_030: default model -------------------------------------------------
+
+
+def _mock_gemini_ok(monkeypatch):
+    """Offer two Gemini models without any live call."""
+    from app.services import generation_service
+
+    monkeypatch.setattr(
+        generation_service,
+        "gemini_status",
+        lambda: generation_service.GeminiStatus(
+            models=["gemini-2.5-flash", "gemini-2.5-pro"], ok=True, detail=""
+        ),
+    )
+
+
+def test_settings_page_lists_model_options(client, monkeypatch):
+    _mock_gemini_ok(monkeypatch)
+    resp = client.get("/settings")
+    assert resp.status_code == 200
+    assert "Default model" in resp.text
+    assert 'action="/settings/default-model"' in resp.text
+    assert "App default (gemini-2.5-flash)" in resp.text
+    assert 'value="gemini-2.5-pro"' in resp.text
+
+
+def test_save_default_model_persists_and_shows_selected(client, db, monkeypatch):
+    _mock_gemini_ok(monkeypatch)
+    resp = client.post(
+        "/settings/default-model", data={"model": "gemini-2.5-pro"}, follow_redirects=False
+    )
+    assert resp.status_code == 303
+    assert (
+        preference_service.get_preference(db, preference_service.DEFAULT_MODEL_KEY)
+        == "gemini-2.5-pro"
+    )
+    page = client.get("/settings")
+    assert 'value="gemini-2.5-pro" selected' in page.text
+
+
+def test_save_unknown_model_rejected(client, db):
+    resp = client.post(
+        "/settings/default-model", data={"model": "not-a-model"}, follow_redirects=False
+    )
+    assert resp.status_code == 303  # flashes the error, redirects back
+    assert preference_service.get_preference(db, preference_service.DEFAULT_MODEL_KEY) == ""
+
+
+def test_save_app_default_clears_model(client, db, monkeypatch):
+    _mock_gemini_ok(monkeypatch)
+    client.post("/settings/default-model", data={"model": "gemini-2.5-pro"}, follow_redirects=False)
+    client.post("/settings/default-model", data={"model": ""}, follow_redirects=False)
+    assert preference_service.get_preference(db, preference_service.DEFAULT_MODEL_KEY) == ""
+
+
+def test_shoots_and_job_form_preselect_saved_model(client, db, monkeypatch):
+    _mock_gemini_ok(monkeypatch)
+    preference_service.set_preference(db, preference_service.DEFAULT_MODEL_KEY, "gemini-2.5-pro")
+    shoots_page = client.get("/shoots")
+    assert 'value="gemini-2.5-pro" selected' in shoots_page.text
+    job_form = client.get("/jobs/new")
+    assert 'value="gemini-2.5-pro" selected' in job_form.text
+
+
+def test_stale_saved_model_falls_back_to_env_default(client, db):
+    # Unmocked status + no API key → only gemini-2.5-flash is selectable.
+    preference_service.set_preference(db, preference_service.DEFAULT_MODEL_KEY, "local:gone")
+    resp = client.get("/shoots")
+    assert 'value="gemini-2.5-flash" selected' in resp.text

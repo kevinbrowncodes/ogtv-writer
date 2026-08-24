@@ -27,6 +27,7 @@ from app.services import (
     llm_errors,
     local_client,
     output_parser,
+    preference_service,
     prompt_catalog,
     script_service,
     shoots,
@@ -152,6 +153,18 @@ def local_models() -> list[str]:
 def selectable_models() -> list[str]:
     """Every model *value* the pickers accept for validation: Gemini + namespaced local."""
     return [*available_models(), *local_models()]
+
+
+def default_model(db: Session) -> str:
+    """The model the pickers start on (and submits fall back to) — STORY_030.
+
+    The operator's saved choice (Settings) when it's still selectable; otherwise the
+    ``.env``-configured Gemini model, so a removed provider never leaves a dead default.
+    """
+    saved = preference_service.get_preference(db, preference_service.DEFAULT_MODEL_KEY)
+    if saved and saved in selectable_models():
+        return saved
+    return get_settings().gemini_model
 
 
 @dataclass(frozen=True)

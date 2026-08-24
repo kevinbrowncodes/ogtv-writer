@@ -255,7 +255,7 @@ template). All DB access lives in services. All env access lives in `config.py`.
 | Scripts | `GET /scripts` (filters), `/scripts/{id}` (detail), `/scripts/{id}/edit`, `POST /scripts/{id}`, `/scripts/{id}/export`, `/duplicate`, `/status`, `DELETE /scripts/{id}` |
 | Tags | `GET /tags`, `POST /tags`, `DELETE /tags/{id}` |
 | Shoots | `GET /shoots` (folder dashboard + filters; starts on the default channel), `GET /shoots/list` (list swap — also what the ↻ Refresh button re-requests), `POST /shoots/run`, `POST /shoots/run-all`, `GET`/`POST /shoots/context` |
-| Settings | `GET /settings`, `POST /settings/default-channel` (the Shoots page's starting channel) |
+| Settings | `GET /settings`, `POST /settings/default-channel` (the Shoots page's starting channel), `POST /settings/default-model` (the model the pickers start on) |
 
 ---
 

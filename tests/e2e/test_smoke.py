@@ -193,7 +193,8 @@ def test_settings_default_channel_applies_to_shoots(page: Page, live_server: str
     try:
         page.goto(f"{live_server}/settings")
         page.locator("#default-channel").select_option("youtube")
-        page.get_by_role("button", name="Save").click()
+        # Two Save buttons exist since STORY_030 — scope to the channel form's.
+        page.locator("form[action='/settings/default-channel'] button[type=submit]").click()
         # Back on Settings after the redirect, the saved choice is selected.
         expect(page.locator("#default-channel")).to_have_value("youtube")
 
@@ -206,6 +207,20 @@ def test_settings_default_channel_applies_to_shoots(page: Page, live_server: str
         # The e2e database is session-scoped — reset so later tests start unfiltered.
         with SessionLocal() as db:
             preference_service.set_preference(db, preference_service.DEFAULT_CHANNEL_KEY, "")
+
+
+def test_settings_default_model_card_saves(page: Page, live_server: str):
+    # STORY_030: the Generation card renders and Save round-trips. The e2e server runs
+    # with a blank GEMINI_API_KEY (no paid calls), so only the fallback model is offered
+    # here — picking a *different* model is covered at the integration layer with a
+    # mocked model list.
+    page.goto(f"{live_server}/settings")
+    model_select = page.locator("#default-model")
+    expect(model_select).to_be_visible()
+    expect(model_select).to_contain_text("App default")
+    page.locator("form[action='/settings/default-model'] button[type=submit]").click()
+    page.wait_for_url("**/settings")
+    expect(page.locator("#default-model")).to_have_value("")  # "App default" kept
 
 
 def test_completed_job_shows_split_scripts(page: Page, live_server: str):

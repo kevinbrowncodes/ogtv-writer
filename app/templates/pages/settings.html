@@ -53,6 +53,28 @@
       </form>
     </section>
 
+    <!-- Generation (STORY_030) -->
+    <section class="card p-5">
+      <h2 class="font-semibold">Generation</h2>
+      <p class="mt-1 text-sm text-muted">The Model pickers on the Shoots and Generate pages start on this model.</p>
+      <form method="post" action="/settings/default-model" class="mt-4 flex items-end gap-3">
+        <div class="grow">
+          <label class="label" for="default-model">Default model</label>
+          <select id="default-model" name="model" class="input">
+            <option value="">App default ({{ env_default_model }})</option>
+            {% for group in model_options %}
+            <optgroup label="{{ group.label }}">
+              {% for o in group.options %}
+              <option value="{{ o.value }}" {% if o.value == default_model_pref %}selected{% endif %}>{{ o.label }} — {{ o.price }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Save</button>
+      </form>
+    </section>
+
     <!-- About -->
     <section class="card p-5 lg:col-span-2">
       <h2 class="font-semibold">About</h2>

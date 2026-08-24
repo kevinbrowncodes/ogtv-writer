@@ -47,7 +47,7 @@ def jobs_page(request: Request, db: DbSession) -> HTMLResponse:
 
 
 @router.get("/jobs/new", response_class=HTMLResponse)
-def job_new_page(request: Request, prompt: str = "") -> HTMLResponse:
+def job_new_page(request: Request, db: DbSession, prompt: str = "") -> HTMLResponse:
     selected = prompt_catalog.get_prompt(prompt) if prompt else None
     shoot_list = shoots.list_shoots()
     return templates.TemplateResponse(
@@ -57,7 +57,7 @@ def job_new_page(request: Request, prompt: str = "") -> HTMLResponse:
             "prompts": prompt_catalog.list_prompts(),
             "selected": selected,
             "model_options": generation_service.model_options(),
-            "default_model": get_settings().gemini_model,
+            "default_model": generation_service.default_model(db),
             "gemini": generation_service.gemini_status(),
             "shoots": shoot_list,
             "source_root": get_settings().source_root,
@@ -158,7 +158,7 @@ def jobs_create(
 ) -> Response:
     selected = prompt_catalog.get_prompt(prompt_slug) if prompt_slug else None
     models = generation_service.selectable_models()
-    default_model = get_settings().gemini_model
+    default_model = generation_service.default_model(db)
     chosen_model = model if model in models else default_model
     values = {
         "prompt_slug": prompt_slug,
