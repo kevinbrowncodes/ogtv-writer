@@ -13,6 +13,12 @@ from playwright.sync_api import Page, expect
 pytestmark = pytest.mark.e2e
 
 
+def test_root_opens_shoots(page: Page, live_server: str):
+    # STORY_031: the app root lands on the Shoots page.
+    page.goto(live_server)
+    expect(page.get_by_role("heading", name="Shoots")).to_be_visible()
+
+
 def test_dashboard_renders(page: Page, live_server: str):
     page.goto(f"{live_server}/dashboard")
     expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()

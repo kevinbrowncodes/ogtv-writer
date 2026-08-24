@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 
-def test_index_redirects_to_dashboard(client):
+def test_index_redirects_to_shoots(client):
+    # STORY_031: the app opens on the Shoots page, the daily driver.
     resp = client.get("/", follow_redirects=False)
     assert resp.status_code == 303
-    assert resp.headers["location"] == "/dashboard"
+    assert resp.headers["location"] == "/shoots"
+
+
+def test_sidebar_lists_shoots_first(client):
+    # STORY_031: Shoots sits above Dashboard in the nav.
+    resp = client.get("/dashboard")
+    assert resp.status_code == 200
+    assert resp.text.index('href="/shoots"') < resp.text.index('href="/dashboard"')
 
 
 def test_dashboard_renders_shell_and_stats(client):

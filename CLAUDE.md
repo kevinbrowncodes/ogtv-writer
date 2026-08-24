@@ -142,7 +142,7 @@ ogtv-writer/
   ```
 - **Run the app:**
   ```bash
-  # uvicorn with hot reload → http://localhost:8000 (no login; lands on the dashboard)
+  # uvicorn with hot reload → http://localhost:8000 (no login; lands on the Shoots page)
   make dev
   # second terminal: rebuild Tailwind on template changes
   make css-watch

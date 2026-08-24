@@ -19,8 +19,8 @@ router = APIRouter(tags=["pages"])
 
 @router.get("/", include_in_schema=False)
 def index() -> RedirectResponse:
-    """No login here — go straight to the dashboard."""
-    return RedirectResponse("/dashboard", status_code=303)
+    """No login here — go straight to the Shoots page, the daily driver (STORY_031)."""
+    return RedirectResponse("/shoots", status_code=303)
 
 
 def _build_stats(db: DbSession) -> list[dict]:
