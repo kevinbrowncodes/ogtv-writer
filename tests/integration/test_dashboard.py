@@ -29,6 +29,18 @@ def test_sidebar_lists_only_core_nav_shoots_first(client):
     assert 'href="/settings"' in resp.text
 
 
+def test_topbar_has_no_generate_shortcut(client):
+    # STORY_035: the topbar quick-action is gone; the Queue page still offers /jobs/new.
+    resp = client.get("/shoots")
+    assert resp.status_code == 200
+    header = resp.text.split("<header")[1].split("</header>")[0]
+    assert 'href="/jobs/new"' not in header
+    assert 'href="/settings"' in header  # the gear stays
+    queue = client.get("/jobs")
+    assert 'href="/jobs/new"' in queue.text
+    assert client.get("/jobs/new").status_code == 200
+
+
 def test_sidebar_is_an_unpinned_drawer_everywhere(client):
     # STORY_032: no lg: pin on the aside/backdrop, and the hamburger shows at all sizes.
     resp = client.get("/shoots")
