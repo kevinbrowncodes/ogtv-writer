@@ -6,7 +6,8 @@ imports below.
 """
 
 from app.models.job import Job
+from app.models.preference import Preference
 from app.models.script import Script
 from app.models.tag import Tag
 
-__all__ = ["Job", "Script", "Tag"]
+__all__ = ["Job", "Preference", "Script", "Tag"]

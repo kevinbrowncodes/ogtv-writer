@@ -168,6 +168,28 @@ def test_shoots_refresh_button_picks_up_new_folder(page: Page, live_server: str)
         shutil.rmtree(new_shoot, ignore_errors=True)
 
 
+def test_settings_default_channel_applies_to_shoots(page: Page, live_server: str):
+    # STORY_028: pick a default channel in Settings → the Shoots page starts on it.
+    from app.database import SessionLocal
+    from app.services import preference_service
+
+    try:
+        page.goto(f"{live_server}/settings")
+        page.locator("#default-channel").select_option("youtube")
+        page.get_by_role("button", name="Save").click()
+        # Back on Settings after the redirect, the saved choice is selected.
+        expect(page.locator("#default-channel")).to_have_value("youtube")
+
+        page.goto(f"{live_server}/shoots")
+        expect(page.locator("#shoot-channel-filter")).to_have_value("youtube")
+        expect(page.locator("#shoots-list")).to_contain_text("yt-test-shoot")
+        expect(page.locator("#shoots-list")).not_to_contain_text("only-gains-tv")
+    finally:
+        # The e2e database is session-scoped — reset so later tests start unfiltered.
+        with SessionLocal() as db:
+            preference_service.set_preference(db, preference_service.DEFAULT_CHANNEL_KEY, "")
+
+
 def test_completed_job_shows_split_scripts(page: Page, live_server: str):
     page.goto(f"{live_server}/jobs")
     # Open the seeded completed job (the only row marked Done).

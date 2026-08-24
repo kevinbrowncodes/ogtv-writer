@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from app.config import get_settings
 from app.dependencies import DbSession
-from app.services import generation_service, job_service, prompt_catalog, shoots
+from app.services import generation_service, job_service, preference_service, prompt_catalog, shoots
 from app.templating import flash, is_htmx, templates, toast_trigger
 
 router = APIRouter(tags=["shoots"])
@@ -58,7 +58,16 @@ def _list_context(db: DbSession, channel: str, date: str) -> dict:
 
 
 @router.get("/shoots", response_class=HTMLResponse)
-def shoots_page(request: Request, db: DbSession, channel: str = "", date: str = "") -> HTMLResponse:
+def shoots_page(
+    request: Request, db: DbSession, channel: str | None = None, date: str = ""
+) -> HTMLResponse:
+    # No channel in the query at all → start on the saved default channel (STORY_028).
+    # An explicit ?channel= (empty) still means "All channels". A stale default whose
+    # folder is gone falls back to all rather than an empty filtered view.
+    if channel is None:
+        channel = preference_service.get_preference(db, preference_service.DEFAULT_CHANNEL_KEY)
+        if channel and channel not in shoots.list_by_channel():
+            channel = ""
     context = _list_context(db, channel, date)
     return templates.TemplateResponse(
         request,

@@ -37,6 +37,22 @@
       </ul>
     </section>
 
+    <!-- Shoots (STORY_028) -->
+    <section class="card p-5">
+      <h2 class="font-semibold">Shoots</h2>
+      <p class="mt-1 text-sm text-muted">The Channel dropdown on the Shoots page starts on this channel.</p>
+      <form method="post" action="/settings/default-channel" class="mt-4 flex items-end gap-3">
+        <div class="grow">
+          <label class="label" for="default-channel">Default channel</label>
+          <select id="default-channel" name="channel" class="input">
+            <option value="">All channels</option>
+            {% for c in channel_options %}<option value="{{ c }}" {% if c == default_channel %}selected{% endif %}>{{ c }}</option>{% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Save</button>
+      </form>
+    </section>
+
     <!-- About -->
     <section class="card p-5 lg:col-span-2">
       <h2 class="font-semibold">About</h2>

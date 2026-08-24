@@ -28,6 +28,10 @@ Prompt (markdown)  →  Generate N variations  →  Edit / tag / status  →  Co
 - **Script detail** — view the markdown, edit it, **copy to clipboard**, and
   **export `.md`** (or download a whole run as a `.zip`).
 - **Tags** — your canonical catalog of themes, models, and styles.
+- **Shoots** — shoot folders under `data/logline/<channel>/…` are auto-discovered;
+  run pending ones against a prompt + model, ↻ **Refresh** picks up newly added
+  folders in place, and **Settings** lets you choose which channel the page's
+  Channel dropdown starts on.
 
 ### Script lifecycle
 
@@ -250,6 +254,8 @@ template). All DB access lives in services. All env access lives in `config.py`.
 | Jobs | `GET /jobs/new`, `POST /jobs`, `GET /jobs` (queue), `GET /jobs/{id}` (detail + live status), `GET /jobs/{id}/status`, `GET /jobs/{id}/export.zip` |
 | Scripts | `GET /scripts` (filters), `/scripts/{id}` (detail), `/scripts/{id}/edit`, `POST /scripts/{id}`, `/scripts/{id}/export`, `/duplicate`, `/status`, `DELETE /scripts/{id}` |
 | Tags | `GET /tags`, `POST /tags`, `DELETE /tags/{id}` |
+| Shoots | `GET /shoots` (folder dashboard + filters; starts on the default channel), `GET /shoots/list` (list swap — also what the ↻ Refresh button re-requests), `POST /shoots/run`, `POST /shoots/run-all`, `GET`/`POST /shoots/context` |
+| Settings | `GET /settings`, `POST /settings/default-channel` (the Shoots page's starting channel) |
 
 ---
 
