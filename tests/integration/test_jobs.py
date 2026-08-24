@@ -37,6 +37,7 @@ def test_new_job_form_lists_prompts(client) -> None:
 def test_count_field_shown_only_for_count_prompts(client) -> None:
     shown = client.get("/jobs/new/count-field", params={"prompt_slug": WIP})
     assert "Number of scripts" in shown.text
+    assert 'value="6"' in shown.text
     hidden = client.get("/jobs/new/count-field", params={"prompt_slug": VEO})
     assert "Number of scripts" not in hidden.text
 
