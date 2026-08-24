@@ -99,3 +99,38 @@ def test_count_prompt_requires_a_count(client, db) -> None:
     jobs = job_service.list_jobs(db)
     assert len(jobs) == 1
     assert jobs[0].count == 6
+
+
+# --- STORY_033 / BUG_007: orphaned running jobs recover on worker start -------
+
+
+def test_worker_start_recovers_orphaned_running_job(client, db) -> None:
+    from app.services import job_worker
+
+    job = job_service.create_job(
+        db,
+        prompt_slug=VEO,
+        prompt_filename=f"{VEO}.md",
+        addendum="",
+        count=None,
+        image_path="data/uploads/x.png",
+        image_filename="x.png",
+    )
+    job.status = "running"
+    db.commit()
+
+    # start() runs recovery synchronously before the polling thread spawns; with no
+    # queued jobs the thread just idles until stop().
+    job_worker.start()
+    try:
+        db.refresh(job)
+        assert job.status == "failed"
+        assert job.error == job_service.ORPHANED_RUNNING_ERROR
+    finally:
+        job_worker.stop()
+
+    queue = client.get("/jobs")
+    assert "Failed" in queue.text
+    assert "1 running" not in queue.text  # the phantom "Generating…" banner is gone
+    detail = client.get(f"/jobs/{job.id}")
+    assert job_service.ORPHANED_RUNNING_ERROR in detail.text

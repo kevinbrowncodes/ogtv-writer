@@ -58,3 +58,44 @@ def test_count_jobs(db) -> None:
     assert job_service.count_jobs(db) == 2
     assert job_service.count_jobs(db, status="queued") == 2
     assert job_service.count_jobs(db, status="failed") == 0
+
+
+# --- STORY_033 / BUG_007: orphaned running jobs recover -----------------------
+
+
+def _mark_running(db, job) -> None:
+    job.status = "running"
+    db.commit()
+
+
+def test_recover_fails_orphaned_running_job(db) -> None:
+    job = _create(db)
+    _mark_running(db, job)
+
+    recovered = job_service.recover_orphaned_running_jobs(db)
+
+    assert recovered == 1
+    db.refresh(job)
+    assert job.status == "failed"
+    assert job.error == job_service.ORPHANED_RUNNING_ERROR
+    assert job.finished_at is not None
+
+
+def test_recover_leaves_other_states_untouched(db) -> None:
+    queued = _create(db, image_filename="q.png")
+    done = _create(db, image_filename="d.png")
+    done.status = "done"
+    db.commit()
+
+    assert job_service.recover_orphaned_running_jobs(db) == 0
+    db.refresh(queued)
+    db.refresh(done)
+    assert queued.status == "queued" and queued.error == ""
+    assert done.status == "done" and done.error == ""
+
+
+def test_recover_is_idempotent(db) -> None:
+    job = _create(db)
+    _mark_running(db, job)
+    assert job_service.recover_orphaned_running_jobs(db) == 1
+    assert job_service.recover_orphaned_running_jobs(db) == 0

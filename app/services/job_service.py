@@ -9,6 +9,7 @@ from __future__ import annotations
 import io
 import re
 import zipfile
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -64,6 +65,31 @@ def count_jobs(db: Session, *, status: str | None = None) -> int:
 
 def get_job(db: Session, job_id: int) -> Job | None:
     return db.get(Job, job_id)
+
+
+# Shown on a job orphaned by a crash/redeploy (BUG_007 / STORY_033).
+ORPHANED_RUNNING_ERROR = (
+    "Interrupted by an app restart before it could finish. "
+    "Re-run the shoot (or queue the job again) to retry."
+)
+
+
+def recover_orphaned_running_jobs(db: Session) -> int:
+    """Fail every job left in ``running`` by a dead process. Returns how many.
+
+    The app has exactly one in-process worker, so when it starts a ``running``
+    row cannot actually be running — its process died mid-job (BUG_007). The
+    orphan is marked failed rather than re-queued: re-running spends paid model
+    calls, so that stays an explicit operator action.
+    """
+    orphans = db.scalars(select(Job).where(Job.status == "running")).all()
+    for job in orphans:
+        job.status = "failed"
+        job.error = ORPHANED_RUNNING_ERROR
+        job.finished_at = datetime.now(UTC)
+    if orphans:
+        db.commit()
+    return len(orphans)
 
 
 def delete_job(db: Session, job: Job) -> None:

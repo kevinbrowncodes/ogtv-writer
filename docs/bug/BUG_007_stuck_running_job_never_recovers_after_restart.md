@@ -1,6 +1,6 @@
 # BUG_007 — A job stuck in "Running" never recovers after a restart
 
-> Status: Open
+> Status: Resolved
 
 ## Summary
 
@@ -42,11 +42,11 @@ during app startup / worker start.
 
 ## Acceptance Criteria
 
-- [ ] On startup, jobs left in `running` are recovered (re-queued or marked
+- [x] On startup, jobs left in `running` are recovered (re-queued or marked
       failed with a note) — the steps above no longer leave a phantom job.
-- [ ] The Queue/Shoots banner reflects the recovered state without manual
+- [x] The Queue/Shoots banner reflects the recovered state without manual
       database surgery.
-- [ ] A regression test covers recovery (unit: worker/startup recovery
+- [x] A regression test covers recovery (unit: worker/startup recovery
       function; integration: a seeded `running` job is recovered when the app
       starts).
 
@@ -54,4 +54,10 @@ during app startup / worker start.
 
 ## Resolution
 
-<Pending.>
+Fixed by [STORY_033](../story/STORY_033_stuck_running_jobs_recover_on_startup.md):
+`job_worker.start()` now runs `job_service.recover_orphaned_running_jobs()`
+before the polling thread spawns, marking any `running` job **failed** with a
+clear "interrupted by an app restart" note (never re-queued — re-running spends
+paid model calls, so that stays an explicit operator action). Covered by three
+unit tests and one integration test. Deploying this build recovered job #6
+(stuck since Aug 15) and cleared the phantom "Generating… 1 running" banner.

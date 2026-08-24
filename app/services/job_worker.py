@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models.job import Job
+from app.services import job_service
 from app.services.generation_service import run_job
 
 log = logging.getLogger(__name__)
@@ -60,6 +61,15 @@ def start() -> None:
     global _thread
     if _thread is not None and _thread.is_alive():
         return
+    # This is the only worker, so a job still "running" now was orphaned by a dead
+    # process — close it out before polling begins (BUG_007 / STORY_033).
+    try:
+        with SessionLocal() as db:
+            recovered = job_service.recover_orphaned_running_jobs(db)
+        if recovered:
+            log.warning("Recovered %s orphaned running job(s) from a previous process", recovered)
+    except Exception:
+        log.exception("Orphaned-job recovery failed; starting the worker anyway")
     _stop.clear()
     _thread = threading.Thread(target=_loop, name="job-worker", daemon=True)
     _thread.start()
